@@ -56,6 +56,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Cron Trigger Secret
+    |--------------------------------------------------------------------------
+    |
+    | Guards App\Http\Controllers\CronTriggerController's routes, used as a
+    | fallback on hosting where the control panel's cron feature can't run
+    | an arbitrary shell command. Leave unset (null) to keep those routes
+    | disabled (404) entirely - see the controller's own doc comment.
+    |
+    */
+
+    'cron_secret' => env('CRON_SECRET'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
@@ -65,7 +79,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Jakarta'),
 
     /*
     |--------------------------------------------------------------------------

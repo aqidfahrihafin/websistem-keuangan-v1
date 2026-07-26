@@ -14,12 +14,15 @@
 /.zed
 /auth.json
 /node_modules
+/mobile/
 /public/build
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
 /storage/*.key
 /storage/pail
+# Firebase Admin SDK service-account credentials (server-side push send key)
+*firebase-adminsdk*.json
 /vendor
 _ide_helper.php
 Homestead.json

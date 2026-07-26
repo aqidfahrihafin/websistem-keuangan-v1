@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+@plugin '@tailwindcss/forms';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -6,4 +8,227 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --app-corner-radius: 6px;
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+/* Scrolling stays fully functional (wheel/trackpad/touch/keyboard) - only
+   the visible track/thumb is hidden, for the sidebar nav and main content
+   scroll containers where the default OS scrollbar reads as visual clutter
+   rather than a useful affordance. */
+.no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Scoped to application data tables. Keeping these rules in the components
+   layer lets an explicit row utility (for totals, warnings, etc.) override
+   the generic zebra/hover treatment. */
+@layer components {
+    .table-card tbody tr:nth-child(even) {
+        background-color: rgba(248, 250, 252, .7);
+        background-color: color-mix(in oklab, var(--color-slate-50) 55%, transparent);
+    }
+
+    .table-card tbody tr:hover {
+        background-color: rgba(240, 253, 250, .82);
+        background-color: color-mix(in oklab, var(--color-teal-50) 62%, transparent);
+    }
+
+    .table-card table {
+        width: 100%;
+    }
+
+    .table-card thead {
+        background: linear-gradient(180deg, color-mix(in oklab, var(--color-slate-50) 94%, white), color-mix(in oklab, var(--color-slate-100) 72%, white));
+    }
+
+    .table-card thead th {
+        border-bottom: 1px solid color-mix(in oklab, var(--color-slate-200) 82%, transparent);
+        color: var(--color-slate-600);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.065em;
+    }
+
+    .table-card tbody tr {
+        transition: background-color 160ms ease;
+    }
+
+    .table-card tbody td {
+        border-color: color-mix(in oklab, var(--color-slate-200) 58%, transparent);
+    }
+}
+
+/* Legacy table markup still uses slate-400 for secondary labels and empty
+   messages. Raise it one step inside data tables so small text remains
+   readable without changing decorative icons on dark surfaces. */
+.table-card .text-slate-400 {
+    color: var(--color-slate-500);
+}
+
+/* One compact corner system for every rectangular UI element in the
+   authenticated app. True circles/pills keep `rounded-full`. */
+.app-page [class*='rounded-']:not(.rounded-full),
+.app-page .btn-primary,
+.app-page .btn-secondary,
+.app-page .btn-danger,
+.app-page .btn-success,
+.app-page .btn-warning,
+.app-page .btn-link,
+.app-page .btn-link-danger,
+.app-page .card,
+.app-page .table-card,
+.app-page .toolbar,
+.app-page .field-input,
+.app-page .field-file,
+.app-page .field-checkbox {
+    border-radius: var(--app-corner-radius);
+}
+
+.app-page {
+    position: relative;
+    isolation: isolate;
+}
+
+.app-page::before {
+    position: fixed;
+    z-index: -1;
+    top: 3rem;
+    right: -8rem;
+    width: 26rem;
+    height: 26rem;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--color-teal-100) 40%, transparent);
+    filter: blur(90px);
+    opacity: .55;
+    content: '';
+    pointer-events: none;
+}
+
+.app-page::after {
+    position: fixed;
+    z-index: -1;
+    bottom: -12rem;
+    left: 18%;
+    width: 30rem;
+    height: 30rem;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--color-sky-100) 35%, transparent);
+    filter: blur(100px);
+    opacity: .45;
+    content: '';
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger,
+    .btn-success,
+    .btn-warning,
+    .card {
+        transform: none !important;
+    }
+}
+
+/* Same reasoning as .table-card below, applied to the plain <table> markup
+   used throughout the /dev documentation pages (Tentang, Skema Database,
+   API Wali/Kiosk, Instalasi) and the PRD - those tables sit directly inside
+   a `.prose article`, not a `.table-card` wrapper, so without this they
+   overflowed the *whole page* horizontally on a phone (title/nav pushed off
+   too) instead of just scrolling the table itself. display:block lets the
+   browser give the table its own scroll container while still laying out
+   cells normally (no forced single-line/`white-space:nowrap`, since these
+   cells hold paragraph-length descriptions meant to keep wrapping). */
+.prose table {
+    display: block;
+    overflow-x: auto;
+}
+
+/* Long unbroken strings (route paths like
+   /wali/anak/{santri}/tagihan/{tagihan}/topup/core, appearing constantly
+   across the /dev docs) have no whitespace for the browser to wrap at by
+   default, so an inline `code` span could push past the .prose column's
+   width on a narrow phone screen instead of wrapping - this lets it break
+   mid-string as a last resort rather than overflow. */
+.prose code {
+    overflow-wrap: break-word;
+}
+
+@layer components {
+    .btn-primary {
+        @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-linear-to-b from-teal-700 to-teal-800 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-teal-500/20 transition duration-200 hover:-translate-y-px hover:from-teal-800 hover:to-teal-700 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 active:translate-y-0 disabled:pointer-events-none disabled:opacity-50;
+    }
+    .btn-secondary {
+        @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition duration-200 hover:-translate-y-px hover:border-slate-300 hover:bg-white hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 active:translate-y-0 disabled:pointer-events-none disabled:opacity-50;
+    }
+    .btn-danger {
+        @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-linear-to-b from-red-700 to-red-800 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-red-500/20 transition duration-200 hover:-translate-y-px hover:from-red-600 hover:to-red-700 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 active:translate-y-0 disabled:pointer-events-none disabled:opacity-50;
+    }
+    .btn-success {
+        @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-linear-to-b from-emerald-700 to-emerald-800 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-emerald-500/20 transition duration-200 hover:-translate-y-px hover:from-emerald-800 hover:to-emerald-700 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 active:translate-y-0 disabled:pointer-events-none disabled:opacity-50;
+    }
+    .btn-warning {
+        @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-linear-to-b from-amber-700 to-amber-800 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-amber-500/20 transition duration-200 hover:-translate-y-px hover:from-amber-800 hover:to-amber-700 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 active:translate-y-0 disabled:pointer-events-none disabled:opacity-50;
+    }
+    .btn-link {
+        @apply inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-semibold text-teal-700 transition hover:bg-teal-50 hover:text-teal-800;
+    }
+    .btn-link-danger {
+        @apply inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700;
+    }
+    .card {
+        @apply border border-white/80 bg-white/90 p-6 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm;
+        border-radius: var(--app-corner-radius);
+    }
+    .table-card {
+        /* overflow-x-auto (not overflow-hidden) so a table wider than the
+           viewport - true for nearly every admin table on a phone - can be
+           scrolled to reach its off-screen columns, instead of just getting
+           silently clipped with no way to see the rest. Still clips to the
+           rounded corners exactly like overflow-hidden did. */
+        @apply overflow-x-auto border border-white/80 bg-white/90 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm;
+        border-radius: var(--app-corner-radius);
+    }
+    .field-input {
+        @apply block min-h-10 w-full rounded-xl border-slate-200 bg-slate-50/80 px-3.5 py-2.5 text-sm text-slate-900 shadow-xs transition duration-200 placeholder:text-slate-500 hover:border-slate-300 hover:bg-white focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-teal-600/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500;
+    }
+    .badge {
+        @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ring-current/10;
+    }
+    .field-file {
+        @apply block w-full rounded-xl border border-dashed border-slate-300 bg-slate-50/80 p-2 text-sm text-slate-600 transition hover:border-teal-300 hover:bg-teal-50/40 file:mr-4 file:rounded-lg file:border-0 file:bg-teal-100 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-teal-800 file:transition hover:file:bg-teal-200;
+    }
+    .field-checkbox {
+        @apply h-4.5 w-4.5 rounded-md border-slate-300 text-teal-600 shadow-sm focus:ring-4 focus:ring-teal-600/10 focus:ring-offset-0;
+    }
+    .field-radio {
+        @apply h-4.5 w-4.5 border-slate-300 text-teal-600 shadow-sm focus:ring-4 focus:ring-teal-600/10 focus:ring-offset-0;
+    }
+    .section-heading {
+        @apply text-base font-semibold tracking-tight text-slate-900;
+    }
+    .section-description {
+        @apply mt-1 text-sm leading-relaxed text-slate-600;
+    }
+    .toolbar {
+        @apply flex flex-col gap-3 border border-white/90 bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-center;
+        border-radius: var(--app-corner-radius);
+    }
 }

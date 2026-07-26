@@ -62,6 +62,15 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+            // The web server process (e.g. a Windows service under Laragon)
+            // often doesn't inherit the same PATH as an interactive shell,
+            // so `mysqldump`/`mysql` that work fine from the terminal can
+            // still fail from a Livewire request. Leave blank to fall back
+            // to PATH lookup (the norm on Linux/prod); set DB_DUMP_BINARY_PATH
+            // in .env locally if backups fail with a "not recognized" error.
+            'dump' => [
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', ''),
+            ],
         ],
 
         'mariadb' => [
