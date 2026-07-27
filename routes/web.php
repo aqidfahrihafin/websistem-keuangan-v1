@@ -37,8 +37,10 @@ Route::post('/midtrans/webhook', MidtransWebhookController::class)->name('midtra
 
 // Fallback for hosting where the control panel's cron can't run an
 // arbitrary shell command - see CronTriggerController's doc comment.
-Route::get('/cron/schedule/{secret}', [CronTriggerController::class, 'schedule'])->name('cron.schedule');
-Route::get('/cron/queue/{secret}', [CronTriggerController::class, 'queue'])->name('cron.queue');
+Route::middleware('throttle:6,1')->group(function () {
+    Route::get('/cron/schedule/{secret}', [CronTriggerController::class, 'schedule'])->name('cron.schedule');
+    Route::get('/cron/queue/{secret}', [CronTriggerController::class, 'queue'])->name('cron.queue');
+});
 
 Route::middleware(['auth', 'role:admin|bendahara'])->prefix('admin')->name('admin.')->group(function () {
     Route::livewire('/', 'admin.dashboard')->name('dashboard');
