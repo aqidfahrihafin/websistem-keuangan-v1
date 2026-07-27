@@ -80,7 +80,27 @@
     },
     "config": {
         "platform": {
-            "php": "8.4.1"
+            "php": "8.4.1",
+            "ext-curl": "8.4.1",
+            "ext-dom": "20031129",
+            "ext-fileinfo": "8.4.1",
+            "ext-filter": "8.4.1",
+            "ext-gd": "8.4.1",
+            "ext-hash": "8.4.1",
+            "ext-iconv": "8.4.1",
+            "ext-json": "8.4.1",
+            "ext-libxml": "8.4.1",
+            "ext-openssl": "8.4.1",
+            "ext-pcre": "8.4.1",
+            "ext-session": "8.4.1",
+            "ext-simplexml": "8.4.1",
+            "ext-sodium": "8.4.1",
+            "ext-tokenizer": "8.4.1",
+            "ext-xml": "8.4.1",
+            "ext-xmlreader": "8.4.1",
+            "ext-xmlwriter": "8.4.1",
+            "ext-zip": "1.22.0",
+            "ext-zlib": "8.4.1"
         },
         "optimize-autoloader": true,
         "preferred-install": "dist",
