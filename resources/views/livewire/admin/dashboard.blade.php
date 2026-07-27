@@ -198,10 +198,8 @@
         </div>
     </div>
 
-    {{-- Charts: 1 kolom di mobile, 2 di tablet/laptop, 4 sejajar hanya di
-         layar lebar (xl) - dipaksa 4 kolom lebih awal bikin tiap grafik
-         terlalu sempit untuk legend donut & label tanggal. --}}
-    <div class="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    {{-- Charts: tetap 2 kolom di tablet/desktop agar setiap grafik lebar dan mudah dibaca. --}}
+    <div class="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2">
         <div class="card flex h-80 flex-col overflow-hidden p-4 transition hover:shadow-md">
             <div class="flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 text-teal-600"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8M15 7h6v6" /></svg>
