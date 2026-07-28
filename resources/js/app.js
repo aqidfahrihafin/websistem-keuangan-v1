@@ -80,7 +80,19 @@ function actionIconFor(label) {
 }
 
 function enhanceTableActions(root = document) {
-    root.querySelectorAll('.table-card .btn-link:not([data-action-icon]), .table-card .btn-link-danger:not([data-action-icon])').forEach((element) => {
+    const selector = '.table-card .btn-link:not([data-action-icon]), .table-card .btn-link-danger:not([data-action-icon])';
+    const elements = [];
+
+    // Livewire sometimes replaces the action itself instead of its parent.
+    // querySelectorAll() does not include the root node, so check both.
+    if (root instanceof Element && root.matches(selector)) {
+        elements.push(root);
+    }
+    if (root.querySelectorAll) {
+        elements.push(...root.querySelectorAll(selector));
+    }
+
+    elements.forEach((element) => {
         const label = element.textContent.replace(/\s+/g, ' ').trim();
         if (!label) return;
 
@@ -96,8 +108,20 @@ function enhanceTableActions(root = document) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => enhanceTableActions());
-document.addEventListener('livewire:navigated', () => enhanceTableActions());
+function refreshTableActions() {
+    enhanceTableActions();
+    // Cached history and Livewire morphs can finish immediately after their
+    // navigation event. Recheck after layout so Back/Forward stays icon-only.
+    requestAnimationFrame(() => {
+        enhanceTableActions();
+        requestAnimationFrame(() => enhanceTableActions());
+    });
+}
+
+document.addEventListener('DOMContentLoaded', refreshTableActions);
+document.addEventListener('livewire:navigated', refreshTableActions);
+window.addEventListener('pageshow', refreshTableActions);
+window.addEventListener('popstate', refreshTableActions);
 new MutationObserver((mutations) => {
     for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {

@@ -112,12 +112,19 @@
 
 .control-shell-page .card,
 .control-shell-page .table-card,
-.control-shell-page .toolbar {
+.control-shell-page .toolbar,
+.control-shell-page .dashboard-panel {
     border-color: #e2e8e4;
     background: #fff;
     box-shadow: none;
     --tw-ring-color: transparent;
     backdrop-filter: none;
+}
+
+.control-shell-page .dashboard-panel {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: var(--app-corner-radius);
 }
 
 .control-shell-page .card:hover {

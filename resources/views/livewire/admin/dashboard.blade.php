@@ -87,7 +87,7 @@
     </div>
 
     {{-- Aksi cepat --}}
-    <nav aria-label="Aksi cepat admin" class="grid overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4">
+    <nav aria-label="Aksi cepat admin" class="dashboard-panel grid overflow-hidden sm:grid-cols-2 xl:grid-cols-4">
         @php
             $aksiCepat = [
                 ['href' => route('admin.santri.create'), 'label' => 'Tambah Santri', 'desc' => 'Daftarkan santri baru', 'icon' => 'M12 5v14M5 12h14'],
@@ -110,7 +110,7 @@
     </nav>
 
     {{-- Kartu perhatian tanpa judul section. --}}
-    <div class="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:grid-cols-2 xl:grid-cols-4">
+    <div class="dashboard-panel grid overflow-hidden sm:grid-cols-2 xl:grid-cols-4">
         @php
             $perluPerhatian = [
                 ['href' => route('admin.santri.index').'?status=baru', 'label' => 'Santri Baru', 'value' => $santri_baru, 'icon_class' => 'bg-amber-100 text-amber-700', 'value_class' => 'text-amber-700', 'icon' => 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 3 2 2 4-4'],
