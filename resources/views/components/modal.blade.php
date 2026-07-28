@@ -38,7 +38,7 @@
         x-transition:leave="transition ease-in duration-100"
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
-        class="relative flex max-h-[calc(100dvh-0.75rem)] w-full {{ $maxWidthClass }} flex-col overflow-hidden rounded-t-2xl border border-white/70 bg-white/96 shadow-2xl ring-1 ring-slate-900/10 backdrop-blur-xl sm:max-h-[90dvh] sm:rounded-2xl"
+        class="app-modal-panel relative flex max-h-[calc(100dvh-0.75rem)] w-full {{ $maxWidthClass }} flex-col overflow-hidden rounded-t-2xl border border-white/70 bg-white/96 shadow-2xl ring-1 ring-slate-900/10 backdrop-blur-xl sm:max-h-[90dvh] sm:rounded-2xl"
     >
         <div class="flex items-start justify-between gap-4 border-b border-slate-200/70 bg-linear-to-b from-white via-white to-teal-50/40 px-5 py-4">
             <div>

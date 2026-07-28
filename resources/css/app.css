@@ -137,10 +137,55 @@
 
 .control-shell-page .table-card table {
     min-width: 48rem;
+    font-size: 0.75rem;
 }
 
 .control-shell-page .table-card :is(th, td) {
     white-space: nowrap;
+}
+
+/* Data tables are intentionally denser than cards/forms. Existing utility
+   sizes inside cells are normalized as well, so every role gets the same
+   compact table typography instead of a mix of 12/14/16px labels. */
+.control-shell-page .table-card :is(th, td) :where(
+    .text-sm,
+    .text-base,
+    .text-lg,
+    .text-xl,
+    .text-2xl
+) {
+    font-size: 0.75rem;
+    line-height: 1rem;
+}
+
+.control-shell-page .table-card thead th {
+    font-size: 0.6875rem;
+    line-height: 0.875rem;
+}
+
+/* Modal copy must wrap naturally even though table actions and normal app
+   buttons use nowrap. This prevents long labels/messages stretching dialogs
+   sideways on phones and narrow desktop windows. */
+.control-shell-page :is(.app-modal-panel, .confirm-dialog-panel) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.control-shell-page :is(.app-modal-panel, .confirm-dialog-panel) :is(
+    h1,
+    h2,
+    h3,
+    h4,
+    p,
+    label,
+    span,
+    button,
+    a
+) {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .control-shell-page :is(
@@ -288,9 +333,10 @@
     .table-card thead th {
         border-bottom: 1px solid color-mix(in oklab, var(--color-slate-200) 82%, transparent);
         color: var(--color-slate-600);
-        font-size: 0.75rem;
+        font-size: 0.6875rem;
         font-weight: 700;
         letter-spacing: 0.065em;
+        line-height: 0.875rem;
     }
 
     .table-card tbody tr {

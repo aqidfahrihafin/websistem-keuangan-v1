@@ -56,7 +56,7 @@
             x-transition:leave="transition ease-in duration-100"
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-95"
-            class="relative max-h-[calc(100dvh-0.75rem)] w-full max-w-sm overflow-y-auto overscroll-contain rounded-t-2xl border border-white/80 bg-white/95 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl ring-1 ring-slate-900/10 backdrop-blur-xl sm:max-h-[90dvh] sm:rounded-2xl sm:p-6"
+            class="confirm-dialog-panel relative max-h-[calc(100dvh-0.75rem)] w-full max-w-sm overflow-y-auto overscroll-contain rounded-t-2xl border border-white/80 bg-white/95 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl ring-1 ring-slate-900/10 backdrop-blur-xl sm:max-h-[90dvh] sm:rounded-2xl sm:p-6"
         >
             <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl {{ $variant === 'danger' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M12 9v4m0 4h.01M10.3 3.9 2 18h20L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
