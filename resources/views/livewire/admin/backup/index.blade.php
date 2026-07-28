@@ -9,7 +9,10 @@
     <x-warning-banner :variant="$kesiapan['siap'] ? 'success' : 'danger'" :title="$kesiapan['siap'] ? 'Backup & restore siap' : 'Backup & restore belum siap'" class="mb-4">
         {{ $kesiapan['pesan'] }}
         @if ($kesiapan['siap'])
-            <span class="mt-1 block text-xs opacity-80">Driver: {{ strtoupper($kesiapan['driver']) }} · konfigurasi binary terverifikasi.</span>
+            <span class="mt-1 block text-xs opacity-80">
+                Driver: {{ strtoupper($kesiapan['driver']) }}
+                &middot; Mode aktif: {{ ($kesiapan['mode'] ?? 'pdo') === 'cli' ? 'MySQL CLI' : 'PHP/PDO' }}
+            </span>
         @endif
     </x-warning-banner>
 
@@ -24,16 +27,19 @@
         <div class="w-full sm:max-w-md">
             <x-search-input wire:model.live.debounce.300ms="search" placeholder="Cari nama berkas backup..." />
         </div>
-        <button
-            type="button"
-            wire:click="buat"
-            wire:loading.attr="disabled"
-            wire:target="buat"
-            class="btn-primary"
-        >
-            <span wire:loading.remove wire:target="buat">Buat Backup Sekarang</span>
-            <span wire:loading wire:target="buat">Membuat backup&hellip;</span>
-        </button>
+        <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <button type="button" wire:click="openKonfigurasi" class="btn-secondary">Konfigurasi Hosting</button>
+            <button
+                type="button"
+                wire:click="buat"
+                wire:loading.attr="disabled"
+                wire:target="buat"
+                class="btn-primary"
+            >
+                <span wire:loading.remove wire:target="buat">Buat Backup Sekarang</span>
+                <span wire:loading wire:target="buat">Membuat backup&hellip;</span>
+            </button>
+        </div>
     </div>
 
     <div class="table-card">
@@ -79,6 +85,62 @@
         </table>
         {{ $backups->links('vendor.pagination.table-footer') }}
     </div>
+
+    <x-modal
+        show="showKonfigurasiModal"
+        title="Konfigurasi Backup Hosting"
+        description="Pilih cara server membuat dan memulihkan backup. Pengaturan disimpan terenkripsi di database dan tidak mengubah file .env."
+        maxWidth="lg"
+    >
+        <form wire:submit="simpanKonfigurasi" class="space-y-5">
+            <x-form-field
+                label="Mode backup dan restore"
+                required
+                hint="Otomatis disarankan: sistem memakai MySQL CLI jika tersedia dan beralih ke PHP/PDO pada shared hosting."
+                :error="$errors->first('backupMode')"
+            >
+                <select wire:model.live="backupMode" class="field-input">
+                    <option value="auto">Otomatis (disarankan)</option>
+                    <option value="cli">MySQL CLI (mysqldump/mysql)</option>
+                    <option value="pdo">PHP/PDO (tanpa binary)</option>
+                </select>
+            </x-form-field>
+
+            @if ($backupMode !== 'pdo')
+                <x-form-field
+                    label="Folder binary MySQL"
+                    hint="Opsional pada mode Otomatis. Contoh hosting Linux: /usr/bin. Isi foldernya, bukan path file mysqldump."
+                    :error="$errors->first('backupBinaryPath')"
+                >
+                    <input
+                        type="text"
+                        wire:model="backupBinaryPath"
+                        class="field-input font-mono"
+                        placeholder="/usr/bin"
+                        autocomplete="off"
+                    >
+                </x-form-field>
+            @endif
+
+            @if ($hasilTesKonfigurasi)
+                <x-warning-banner variant="success" title="Tes konfigurasi berhasil">
+                    {{ $hasilTesKonfigurasi }}
+                </x-warning-banner>
+            @endif
+
+            <div class="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+                <button type="button" wire:click="$set('showKonfigurasiModal', false)" class="btn-secondary w-full sm:w-auto">Batal</button>
+                <button type="button" wire:click="ujiKonfigurasi" wire:loading.attr="disabled" wire:target="ujiKonfigurasi" class="btn-secondary w-full sm:w-auto">
+                    <span wire:loading.remove wire:target="ujiKonfigurasi">Tes Konfigurasi</span>
+                    <span wire:loading wire:target="ujiKonfigurasi">Menguji&hellip;</span>
+                </button>
+                <button type="submit" wire:loading.attr="disabled" wire:target="simpanKonfigurasi" class="btn-primary w-full sm:w-auto">
+                    <span wire:loading.remove wire:target="simpanKonfigurasi">Simpan Konfigurasi</span>
+                    <span wire:loading wire:target="simpanKonfigurasi">Menyimpan&hellip;</span>
+                </button>
+            </div>
+        </form>
+    </x-modal>
 
     <x-modal show="showPulihkanModal" title="Pulihkan Database" maxWidth="lg">
         <div class="space-y-4">

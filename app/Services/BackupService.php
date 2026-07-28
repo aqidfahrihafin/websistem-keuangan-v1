@@ -22,6 +22,8 @@ class BackupService
 
     public const KODE_KONFIRMASI_PULIHKAN = 'PULIHKAN';
 
+    public function __construct(private BackupSettingsService $settings) {}
+
     /**
      * @return array<int, array{nama: string, ukuran: int, ukuran_label: string, dibuat_at: Carbon}>
      */
@@ -54,6 +56,13 @@ class BackupService
     public function buat(): void
     {
         $this->pastikanSiap();
+
+        if ($this->settings->mode() === BackupSettingsService::MODE_PDO) {
+            $this->buatNative();
+            activity('backup')->causedBy(Auth::user())->log('Membuat backup baru (PHP/PDO)');
+
+            return;
+        }
 
         try {
             $kode = Artisan::call('backup:run', ['--disable-notifications' => true]);
@@ -89,7 +98,7 @@ class BackupService
     }
 
     /**
-     * @return array{siap: bool, driver: string, mysqldump: ?string, mysql: ?string, pesan: string}
+     * @return array{siap: bool, driver: string, mysqldump: ?string, mysql: ?string, mode?: string, lokasi?: string, pesan: string}
      */
     public function kesiapan(): array
     {
@@ -127,9 +136,23 @@ class BackupService
                     'driver' => $driver,
                     'mysqldump' => $mysqldump,
                     'mysql' => $mysql,
+                    'mode' => 'cli',
+                    'lokasi' => Storage::disk(self::DISK)->path($this->direktori()),
                     'pesan' => 'MySQL dan lokasi penyimpanan backup siap digunakan.',
                 ];
             } catch (RuntimeException $exception) {
+                if ($this->settings->mode() === BackupSettingsService::MODE_CLI) {
+                    return [
+                        'siap' => false,
+                        'driver' => $driver,
+                        'mysqldump' => null,
+                        'mysql' => null,
+                        'mode' => 'cli',
+                        'lokasi' => Storage::disk(self::DISK)->path($this->direktori()),
+                        'pesan' => 'Mode MySQL CLI dipilih, tetapi binary belum siap. '.$exception->getMessage(),
+                    ];
+                }
+
                 // Shared hosting often does not expose mysql/mysqldump to
                 // PHP processes. Backup and restore still work through the
                 // PDO/ZipArchive implementation below, so missing CLI
@@ -139,6 +162,8 @@ class BackupService
                     'driver' => $driver,
                     'mysqldump' => null,
                     'mysql' => null,
+                    'mode' => 'pdo',
+                    'lokasi' => Storage::disk(self::DISK)->path($this->direktori()),
                     'pesan' => 'Mode kompatibel hosting aktif: backup dan restore memakai PHP/PDO tanpa binary mysql. '
                         .$exception->getMessage(),
                 ];
@@ -325,6 +350,10 @@ class BackupService
         // server process doesn't always share the same PATH as a terminal, so
         // a bare "mysql" that works from the shell can still fail here.
         try {
+            if ($this->settings->mode() === BackupSettingsService::MODE_PDO) {
+                throw new RuntimeException('Mode PHP/PDO dipilih dari konfigurasi backup.');
+            }
+
             try {
                 $mysqlBinary = $this->binaryDatabase('mysql');
                 $process = new Process([$mysqlBinary, "--defaults-extra-file={$kredensialPath}", $koneksi['database']]);
@@ -566,10 +595,19 @@ class BackupService
         return null;
     }
 
-    private function binaryDatabase(string $nama): string
+    private function binaryDatabase(string $nama, ?string $mode = null, ?string $pathOverride = null): string
     {
+        $mode ??= $this->settings->mode();
+
+        if ($mode === BackupSettingsService::MODE_PDO) {
+            throw new RuntimeException('Mode PHP/PDO dipilih; binary MySQL tidak diperlukan.');
+        }
+
         $koneksi = config('database.connections.'.config('database.default'));
-        $binaryPath = rtrim((string) ($koneksi['dump']['dump_binary_path'] ?? ''), '/\\');
+        $binaryPath = rtrim(
+            (string) ($pathOverride ?? $this->settings->binaryPath() ?? ($koneksi['dump']['dump_binary_path'] ?? '')),
+            '/\\',
+        );
         $pathTerkonfigurasiTidakValid = null;
 
         if ($binaryPath !== '') {
@@ -607,6 +645,66 @@ class BackupService
         }
 
         throw new RuntimeException("Binary {$nama} tidak ditemukan. Atur DB_DUMP_BINARY_PATH ke folder bin MySQL di server.");
+    }
+
+    /**
+     * Test an unsaved configuration before it is persisted from the admin UI.
+     *
+     * @return array{mode: string, mysqldump: ?string, mysql: ?string, pesan: string}
+     */
+    public function ujiKonfigurasi(string $mode, ?string $binaryPath): array
+    {
+        if (! in_array($mode, $this->settings->modes(), true)) {
+            throw new RuntimeException('Mode backup tidak valid.');
+        }
+
+        $binaryPath = trim((string) $binaryPath);
+
+        if ($binaryPath !== '' && ! is_dir($binaryPath)) {
+            throw new RuntimeException("Folder binary tidak ditemukan atau tidak dapat diakses: {$binaryPath}");
+        }
+
+        if ($mode === BackupSettingsService::MODE_PDO) {
+            DB::connection()->getPdo();
+
+            if (! extension_loaded('zip')) {
+                throw new RuntimeException('Ekstensi PHP zip belum aktif.');
+            }
+
+            return [
+                'mode' => 'pdo',
+                'mysqldump' => null,
+                'mysql' => null,
+                'pesan' => 'Koneksi PDO MySQL dan ekstensi ZIP siap digunakan.',
+            ];
+        }
+
+        try {
+            $mysqldump = $this->binaryDatabase('mysqldump', $mode, $binaryPath);
+            $mysql = $this->binaryDatabase('mysql', $mode, $binaryPath);
+            $this->ujiBinary($mysqldump);
+            $this->ujiBinary($mysql);
+
+            return [
+                'mode' => 'cli',
+                'mysqldump' => $mysqldump,
+                'mysql' => $mysql,
+                'pesan' => 'Binary mysqldump dan mysql berhasil diverifikasi.',
+            ];
+        } catch (RuntimeException $exception) {
+            if ($mode === BackupSettingsService::MODE_CLI) {
+                throw $exception;
+            }
+
+            DB::connection()->getPdo();
+
+            return [
+                'mode' => 'pdo',
+                'mysqldump' => null,
+                'mysql' => null,
+                'pesan' => 'Binary MySQL tidak tersedia; mode Otomatis akan menggunakan PHP/PDO.',
+            ];
+        }
     }
 
     private function ujiBinary(string $binary): void

@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Backup;
 
 use App\Livewire\Concerns\WithPerPage;
 use App\Services\BackupService;
+use App\Services\BackupSettingsService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -20,6 +21,14 @@ class Index extends Component
 
     public bool $showPulihkanModal = false;
 
+    public bool $showKonfigurasiModal = false;
+
+    public string $backupMode = BackupSettingsService::MODE_AUTO;
+
+    public string $backupBinaryPath = '';
+
+    public ?string $hasilTesKonfigurasi = null;
+
     public ?string $pulihkanNama = null;
 
     public string $kodeKonfirmasi = '';
@@ -32,6 +41,12 @@ class Index extends Component
     public ?string $pesanSukses = null;
 
     public ?string $pesanError = null;
+
+    public function mount(BackupSettingsService $settings): void
+    {
+        $this->backupMode = $settings->mode();
+        $this->backupBinaryPath = $settings->binaryPath() ?? '';
+    }
 
     public function updatedSearch(): void
     {
@@ -70,6 +85,56 @@ class Index extends Component
         $this->kodeKonfirmasi = '';
         $this->resetValidation();
         $this->showPulihkanModal = true;
+    }
+
+    public function openKonfigurasi(BackupSettingsService $settings): void
+    {
+        $this->backupMode = $settings->mode();
+        $this->backupBinaryPath = $settings->binaryPath() ?? '';
+        $this->hasilTesKonfigurasi = null;
+        $this->resetValidation();
+        $this->showKonfigurasiModal = true;
+    }
+
+    public function ujiKonfigurasi(BackupService $service): void
+    {
+        $this->validateKonfigurasi();
+        $this->hasilTesKonfigurasi = null;
+
+        try {
+            $hasil = $service->ujiKonfigurasi($this->backupMode, $this->backupBinaryPath);
+            $this->hasilTesKonfigurasi = $hasil['pesan'];
+        } catch (Throwable $exception) {
+            $this->addError('backupBinaryPath', $exception->getMessage());
+        }
+    }
+
+    public function simpanKonfigurasi(BackupService $service, BackupSettingsService $settings): void
+    {
+        $this->validateKonfigurasi();
+        $this->pesanSukses = null;
+        $this->pesanError = null;
+
+        try {
+            $hasil = $service->ujiKonfigurasi($this->backupMode, $this->backupBinaryPath);
+            $settings->save($this->backupMode, $this->backupBinaryPath);
+            $this->showKonfigurasiModal = false;
+            $this->hasilTesKonfigurasi = null;
+            $this->pesanSukses = 'Konfigurasi backup berhasil disimpan. '.$hasil['pesan'];
+        } catch (Throwable $exception) {
+            $this->addError('backupBinaryPath', $exception->getMessage());
+        }
+    }
+
+    private function validateKonfigurasi(): void
+    {
+        $this->validate([
+            'backupMode' => ['required', 'in:auto,cli,pdo'],
+            'backupBinaryPath' => ['nullable', 'string', 'max:500'],
+        ], [
+            'backupMode.in' => 'Mode backup tidak valid.',
+            'backupBinaryPath.max' => 'Path binary maksimal 500 karakter.',
+        ]);
     }
 
     public function pulihkan(BackupService $service): void

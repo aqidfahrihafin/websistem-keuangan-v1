@@ -110,7 +110,7 @@ php artisan serve</code></pre>
 
 <div class="not-prose rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 mb-6">
     <p class="font-medium mb-1">Troubleshooting backup hosting: path mysqldump masih menunjuk ke Laragon</p>
-    <p>Jika pesan error memuat path seperti <code>C:/laragon/...</code>, berarti <code>DB_DUMP_BINARY_PATH</code> produksi masih memakai nilai dari komputer development atau configuration cache lama. Kosongkan nilainya di <code>.env</code> hosting, lalu jalankan <code>php artisan optimize:clear</code> dan <code>php artisan config:cache</code>. Sistem akan mencari <code>mysqldump</code>/<code>mysql</code> dari PATH Linux dan lokasi umum seperti <code>/usr/bin</code>. Jika provider tidak menyediakan binary tersebut, sistem otomatis beralih ke mode kompatibel PHP/PDO; backup dan restore tetap tersedia selama ekstensi <code>pdo_mysql</code> dan <code>zip</code> aktif.</p>
+    <p>Konfigurasi produksi dapat diatur langsung melalui <strong>Backup &amp; Restore &rarr; Konfigurasi Hosting</strong>, tanpa mengubah <code>.env</code>. Gunakan mode <strong>Otomatis</strong> agar sistem mencari <code>mysqldump</code>/<code>mysql</code> dari PATH Linux dan lokasi umum seperti <code>/usr/bin</code>, lalu beralih ke PHP/PDO jika binary tidak tersedia. Mode <strong>MySQL CLI</strong> mewajibkan folder binary valid, sedangkan mode <strong>PHP/PDO</strong> tidak membutuhkan binary. Pengaturan disimpan terenkripsi di tabel <code>settings</code>. <code>DB_DUMP_BINARY_PATH</code> tetap tersedia sebagai fallback instalasi awal sebelum pengaturan disimpan.</p>
 </div>
 
 <div class="not-prose rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 mb-6">
