@@ -76,7 +76,7 @@
                                 message="{{ $santri->nama }} ({{ $santri->nis }}) akan dihapus. Data ini masih bisa dipulihkan langsung dari database jika diperlukan, tapi akan langsung hilang dari semua daftar dan laporan."
                                 confirmText="Ya, Hapus"
                                 variant="danger"
-                                class="ml-3 text-xs font-medium text-red-600 hover:underline"
+                                class="btn-link-danger ml-3"
                             >Hapus</x-confirm-button>
                         </td>
                     </tr>

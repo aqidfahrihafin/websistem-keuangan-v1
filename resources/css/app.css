@@ -484,6 +484,29 @@
     .table-action-icon svg {
         @apply size-4.5 pointer-events-none;
     }
+
+    /* Server-rendered fallback for Livewire morphs. The old implementation
+       briefly exposed the text label while JavaScript rebuilt the icon after
+       closing a modal. These rules make every standard table action icon-only
+       from the very first paint; JS then replaces the fallback with the
+       action-specific SVG without any text flash. */
+    .table-card :is(.btn-link, .btn-link-danger) {
+        @apply relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white p-0 text-slate-600 shadow-xs transition hover:-translate-y-px hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700 hover:shadow-sm;
+        font-size: 0;
+        line-height: 0;
+    }
+    .table-card .btn-link-danger {
+        @apply border-red-100 text-red-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700;
+    }
+    .table-card :is(.btn-link, .btn-link-danger):not([data-action-icon])::before {
+        width: 1.125rem;
+        height: 1.125rem;
+        background-color: currentColor;
+        content: '';
+        /* Neutral action icon shown only during the very short Livewire
+           server-DOM phase before the specific icon mapping runs. */
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='5' cy='12' r='1.75'/%3E%3Ccircle cx='12' cy='12' r='1.75'/%3E%3Ccircle cx='19' cy='12' r='1.75'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
     .card {
         @apply border border-white/80 bg-white/90 p-6 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm;
         border-radius: var(--app-corner-radius);
