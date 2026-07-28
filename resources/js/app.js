@@ -67,7 +67,7 @@ const tableActionIcons = {
 
 function actionIconFor(label) {
     const value = label.toLowerCase();
-    if (/hapus|batalkan|tolak|nonaktif/.test(value)) return ['delete', true];
+    if (/hapus|batalkan|tolak/.test(value)) return ['delete', true];
     if (/ubah|edit/.test(value)) return ['edit', false];
     if (/unduh|invoice|kwitansi|bukti/.test(value)) return ['download', false];
     if (/cetak|preview/.test(value)) return ['print', false];
@@ -75,7 +75,7 @@ function actionIconFor(label) {
     if (/sinkron|sync|pulihkan/.test(value)) return ['sync', false];
     if (/bayar|setoran|penarikan|proses/.test(value)) return ['wallet', false];
     if (/akun|wali/.test(value)) return ['user', false];
-    if (/aktif|verifikasi|setujui/.test(value)) return ['toggle', false];
+    if (/aktif|nonaktif|verifikasi|setujui/.test(value)) return ['toggle', false];
     return ['default', false];
 }
 

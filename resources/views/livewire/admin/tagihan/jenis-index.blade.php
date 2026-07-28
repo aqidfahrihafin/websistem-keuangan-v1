@@ -55,10 +55,10 @@
                                     message="{{ $jenis->nama }} akan dinonaktifkan dan tidak akan muncul lagi sebagai pilihan saat generate tagihan baru. Tagihan yang sudah ada tidak terpengaruh."
                                     confirmText="Ya, Nonaktifkan"
                                     variant="warning"
-                                    class="badge bg-emerald-100 text-emerald-700"
+                                    class="btn-link"
                                 >Aktif</x-confirm-button>
                             @else
-                                <button wire:click="toggleActive({{ $jenis->id }})" class="badge bg-slate-100 text-slate-500">Nonaktif</button>
+                                <button wire:click="toggleActive({{ $jenis->id }})" class="btn-link">Nonaktif</button>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-right">
@@ -69,7 +69,7 @@
                                 message="{{ $jenis->nama }} akan dihapus permanen. Hanya bisa dihapus kalau belum pernah dipakai untuk generate tagihan."
                                 confirmText="Ya, Hapus"
                                 variant="danger"
-                                class="ml-3 text-xs font-medium text-red-600 hover:underline"
+                                class="btn-link-danger ml-3"
                             >Hapus</x-confirm-button>
                         </td>
                     </tr>
