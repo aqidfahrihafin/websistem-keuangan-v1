@@ -1,3 +1,10 @@
+@import '@fontsource/dm-sans/latin-400.css';
+@import '@fontsource/dm-sans/latin-500.css';
+@import '@fontsource/dm-sans/latin-600.css';
+@import '@fontsource/dm-sans/latin-700.css';
+@import '@fontsource/manrope/latin-600.css';
+@import '@fontsource/manrope/latin-700.css';
+@import '@fontsource/manrope/latin-800.css';
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 @plugin '@tailwindcss/forms';
@@ -6,9 +13,231 @@
 @source '../../storage/framework/views/*.php';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-heading: 'Manrope', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
     --app-corner-radius: 6px;
+}
+
+/* Apins Control adaptation shared by every authenticated role. Navigation
+   and permissions stay role-specific; only the visual shell is unified. */
+.control-shell-page {
+    --app-corner-radius: 16px;
+    background: #f5f7f5;
+    color: #0b172a;
+    font-family: var(--font-sans);
+    font-size: 15px;
+}
+
+.control-shell-page :is(h1, h2, h3, .section-heading),
+.control-shell-page .tabular-nums {
+    font-family: var(--font-heading);
+    letter-spacing: -.025em;
+}
+
+.control-shell-page::before,
+.control-shell-page::after {
+    display: none;
+}
+
+.control-shell-page #app-sidebar {
+    width: 16.5rem;
+    border-right-color: #1d3048;
+    background: #0b172a;
+    box-shadow: none;
+}
+
+.control-shell-page #app-sidebar > div:first-child {
+    border-bottom-color: #1d3048;
+}
+
+.control-shell-page #app-sidebar-navigation {
+    gap: 1.25rem;
+    padding-block: 1.25rem;
+}
+
+.control-shell-page #app-sidebar-navigation > div > p {
+    color: #68788c;
+    font-size: .625rem;
+    letter-spacing: .12em;
+}
+
+.control-shell-page #app-sidebar-navigation a {
+    min-height: 2.55rem;
+    border-radius: .65rem;
+    padding-block: .6rem;
+    color: #aebaca;
+    font-size: .8125rem;
+    white-space: nowrap;
+}
+
+.control-shell-page #app-sidebar-navigation a:hover {
+    background: #14263d;
+    color: white;
+}
+
+.control-shell-page #app-sidebar-navigation a[aria-current='page'] {
+    background: #1a3a4d;
+    color: #83e0c7;
+    box-shadow: none;
+    --tw-ring-color: transparent;
+}
+
+.control-shell-page #app-sidebar-navigation a[aria-current='page'] > span:first-child {
+    display: none;
+}
+
+.control-shell-page #app-topbar {
+    border-bottom-color: #e2e8e4;
+    background: rgb(255 255 255 / 88%);
+    box-shadow: none;
+}
+
+.control-shell-page #app-topbar h1 {
+    font-family: var(--font-heading);
+    font-size: .875rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    white-space: nowrap;
+}
+
+.control-shell-page .app-topbar-accent {
+    display: none;
+}
+
+.control-shell-page main[role='main'],
+.control-shell-page main {
+    --admin-paper: #f5f7f5;
+}
+
+.control-shell-page .card,
+.control-shell-page .table-card,
+.control-shell-page .toolbar {
+    border-color: #e2e8e4;
+    background: #fff;
+    box-shadow: none;
+    --tw-ring-color: transparent;
+    backdrop-filter: none;
+}
+
+.control-shell-page .card:hover {
+    border-color: #d4ddd7;
+}
+
+.control-shell-page .table-card thead {
+    background: #f8faf8;
+}
+
+.control-shell-page .table-card table {
+    min-width: 48rem;
+}
+
+.control-shell-page .table-card :is(th, td) {
+    white-space: nowrap;
+}
+
+.control-shell-page :is(
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger,
+    .btn-success,
+    .btn-warning,
+    .btn-link,
+    .btn-link-danger,
+    .badge
+) {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.control-shell-page :is(.toolbar, .card) > * {
+    min-width: 0;
+}
+
+.control-shell-page .toolbar {
+    align-items: center;
+}
+
+.control-shell-page .toolbar :is(input, select) {
+    min-width: 0;
+}
+
+.control-shell-page .btn-primary {
+    background: #0b172a;
+    box-shadow: none;
+}
+
+.control-shell-page .btn-primary:hover {
+    background: #14243a;
+}
+
+.control-shell-page .admin-control-welcome {
+    border: 1px solid #d8eae3;
+    border-radius: 1.2rem;
+    background: linear-gradient(120deg, #e6f5ef, #f4faf7);
+    color: #0b172a;
+    box-shadow: none;
+}
+
+.control-shell-page .admin-control-welcome::after {
+    position: absolute;
+    top: -6rem;
+    right: -4rem;
+    width: 12rem;
+    height: 12rem;
+    border-radius: 9999px;
+    background: #bff5df;
+    opacity: .55;
+    content: '';
+}
+
+.control-shell-page .dashboard-hero-art {
+    display: none;
+}
+
+.control-shell-page .admin-control-welcome > div {
+    position: relative;
+    z-index: 1;
+}
+
+.control-shell-page .admin-control-welcome > div > div:last-child {
+    border-color: #d8eae3;
+    background: rgb(255 255 255 / 68%);
+    color: #0b172a;
+}
+
+.control-shell-page .admin-control-welcome > div > div:last-child p {
+    color: #526171;
+}
+
+.control-shell-page .admin-control-welcome > div > div:last-child > div:first-child {
+    background: #087565;
+    color: white;
+}
+
+@media (max-width: 639px) {
+    .control-shell-page {
+        font-size: 14px;
+    }
+
+    .control-shell-page #app-topbar h1 {
+        max-width: min(56vw, 18rem);
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .control-shell-page .toolbar {
+        align-items: stretch;
+    }
+
+    .control-shell-page .toolbar :is(.btn-primary, .btn-secondary) {
+        width: 100%;
+    }
+
+    .control-shell-page .admin-control-welcome h1 {
+        font-size: clamp(1.25rem, 6vw, 1.6rem);
+        white-space: nowrap;
+    }
 }
 
 [x-cloak] {
@@ -192,6 +421,15 @@
     }
     .btn-link-danger {
         @apply inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700;
+    }
+    .table-action-icon {
+        @apply relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white p-0 text-slate-600 shadow-xs transition hover:-translate-y-px hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600;
+    }
+    .table-action-icon.table-action-danger {
+        @apply border-red-100 text-red-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus-visible:outline-red-600;
+    }
+    .table-action-icon svg {
+        @apply size-4.5 pointer-events-none;
     }
     .card {
         @apply border border-white/80 bg-white/90 p-6 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm;

@@ -8,7 +8,7 @@
 <table>
     <thead><tr><th>Kebutuhan</th><th>Versi minimum</th></tr></thead>
     <tbody>
-        <tr><td>PHP</td><td>8.3 (ekstensi: <code>pdo_mysql</code>, <code>mbstring</code>, <code>openssl</code>, <code>curl</code>, <code>zip</code>, <code>gd</code> atau <code>imagick</code> untuk foto santri)</td></tr>
+        <tr><td>PHP</td><td>8.4.1+ (ekstensi: <code>pdo_mysql</code>, <code>mbstring</code>, <code>openssl</code>, <code>curl</code>, <code>zip</code>, <code>gd</code> atau <code>imagick</code> untuk foto santri)</td></tr>
         <tr><td>Composer</td><td>2.x</td></tr>
         <tr><td>Node.js &amp; npm</td><td>Node 18+ (untuk build asset Vite/Tailwind)</td></tr>
         <tr><td>MySQL</td><td>8.0+</td></tr>
@@ -16,7 +16,7 @@
     </tbody>
 </table>
 
-<p>Untuk produksi, jalankan worker queue sebagai proses tetap (<code>php artisan queue:work</code>, dikelola Supervisor/systemd) dan gunakan domain HTTPS publik agar webhook Midtrans dapat diakses. Driver database cukup untuk instalasi awal; ketika jumlah pengguna/server bertambah, gunakan Redis untuk <code>CACHE_STORE</code>, <code>SESSION_DRIVER</code>, dan <code>QUEUE_CONNECTION</code> supaya state dapat dibagi antarnode dan pekerjaan latar tidak membebani database utama.</p>
+<p>Untuk produksi, jalankan scheduler <code>php artisan schedule:run</code> setiap menit dan worker queue sebagai proses tetap (<code>php artisan queue:work</code>, dikelola Supervisor/systemd). Pada shared hosting tanpa process manager, jalankan queue setiap menit dengan <code>--stop-when-empty --max-time=45</code>. Scheduler mengirim pengingat tagihan tiga hari sebelum jatuh tempo; queue memproses notifikasi tagihan baru. Gunakan domain HTTPS publik agar webhook Midtrans dapat diakses. Driver database cukup untuk instalasi awal; ketika jumlah pengguna/server bertambah, gunakan Redis untuk <code>CACHE_STORE</code>, <code>SESSION_DRIVER</code>, dan <code>QUEUE_CONNECTION</code>.</p>
 
 <h2>Langkah Instalasi (Development)</h2>
 
@@ -57,6 +57,8 @@ php artisan serve</code></pre>
         <tr><td><code>DB_DATABASE</code>, <code>DB_USERNAME</code>, <code>DB_PASSWORD</code>, <code>DB_HOST</code>, <code>DB_PORT</code></td><td>Koneksi MySQL.</td></tr>
         <tr><td><code>MIDTRANS_SERVER_KEY</code>, <code>MIDTRANS_CLIENT_KEY</code>, <code>MIDTRANS_IS_PRODUCTION</code></td><td>Nilai default/fallback saja &mdash; kredensial aktif sebenarnya diatur admin lewat halaman <code>/admin/pengaturan/midtrans</code> di aplikasi (tersimpan terenkripsi di tabel <code>settings</code>), bukan lewat file ini setelah aplikasi berjalan.</td></tr>
         <tr><td><code>SESSION_DRIVER</code>, <code>QUEUE_CONNECTION</code>, <code>CACHE_STORE</code></td><td>Default <code>database</code> &mdash; tidak perlu Redis untuk skala pondok pada umumnya.</td></tr>
+        <tr><td><code>DB_DUMP_BINARY_PATH</code></td><td>Folder yang berisi <code>mysqldump</code> dan <code>mysql</code>. <strong>Kosongkan di Linux/shared hosting</strong> agar binary dicari dari PATH server. Isi hanya bila provider memberi lokasi khusus; jangan membawa path Windows/Laragon ke produksi.</td></tr>
+        <tr><td><code>CRON_SECRET</code></td><td>Token acak untuk endpoint cron HTTP fallback. Hanya diperlukan bila panel hosting tidak bisa menjalankan perintah Artisan langsung.</td></tr>
     </tbody>
 </table>
 
@@ -104,6 +106,11 @@ php artisan serve</code></pre>
         <li><strong>Tombol "Cek Status Sekarang"</strong> di halaman top up wali (atau <code class="rounded bg-white px-1 py-0.5">POST /api/wali/topup/{id}/sync</code> untuk mobile) &mdash; mengambil status langsung dari Midtrans tanpa perlu menunggu webhook. Paling praktis untuk development sehari-hari, tidak perlu tool tambahan.</li>
         <li><strong>Tunnel publik</strong> (mis. <a href="https://ngrok.com/" target="_blank" rel="noopener">ngrok</a>, atau fitur tunnel bawaan Laragon) &mdash; jalankan <code class="rounded bg-white px-1 py-0.5">ngrok http 8000</code>, lalu set URL ngrok yang didapat (mis. <code class="rounded bg-white px-1 py-0.5">https://xxxx.ngrok-free.app/midtrans/webhook</code>) sebagai Payment Notification URL di dashboard Midtrans. Cara ini menguji alur webhook yang sesungguhnya, cocok dipakai sebelum go-live.</li>
     </ul>
+</div>
+
+<div class="not-prose rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 mb-6">
+    <p class="font-medium mb-1">Troubleshooting backup hosting: path mysqldump masih menunjuk ke Laragon</p>
+    <p>Jika pesan error memuat path seperti <code>C:/laragon/...</code>, berarti <code>DB_DUMP_BINARY_PATH</code> produksi masih memakai nilai dari komputer development atau configuration cache lama. Kosongkan nilainya di <code>.env</code> hosting, lalu jalankan <code>php artisan optimize:clear</code> dan <code>php artisan config:cache</code>. Sistem akan mencari <code>mysqldump</code>/<code>mysql</code> dari PATH Linux dan lokasi umum seperti <code>/usr/bin</code>. Jika provider tidak menyediakan binary tersebut, sistem otomatis beralih ke mode kompatibel PHP/PDO; backup dan restore tetap tersedia selama ekstensi <code>pdo_mysql</code> dan <code>zip</code> aktif.</p>
 </div>
 
 <div class="not-prose rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 mb-6">

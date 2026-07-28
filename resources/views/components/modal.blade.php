@@ -14,7 +14,7 @@
     x-show="$wire.{{ $show }}"
     x-cloak
     x-on:keydown.escape.window="$wire.set('{{ $show }}', false)"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4"
+    class="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto p-0 sm:items-center sm:p-4"
     role="dialog"
     aria-modal="true"
 >
@@ -38,7 +38,7 @@
         x-transition:leave="transition ease-in duration-100"
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
-        class="relative max-h-[90vh] w-full {{ $maxWidthClass }} overflow-y-auto rounded-2xl border border-white/70 bg-white/96 shadow-2xl ring-1 ring-slate-900/10 backdrop-blur-xl"
+        class="relative flex max-h-[calc(100dvh-0.75rem)] w-full {{ $maxWidthClass }} flex-col overflow-hidden rounded-t-2xl border border-white/70 bg-white/96 shadow-2xl ring-1 ring-slate-900/10 backdrop-blur-xl sm:max-h-[90dvh] sm:rounded-2xl"
     >
         <div class="flex items-start justify-between gap-4 border-b border-slate-200/70 bg-linear-to-b from-white via-white to-teal-50/40 px-5 py-4">
             <div>
@@ -53,7 +53,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
             </button>
         </div>
-        <div class="p-5 sm:p-6">
+        <div class="min-h-0 overflow-y-auto overscroll-contain p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:p-6">
             {{ $slot }}
         </div>
     </div>

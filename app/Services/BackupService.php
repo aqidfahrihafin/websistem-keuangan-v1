@@ -106,6 +106,16 @@ class BackupService
                 ];
             }
 
+            if (! extension_loaded('zip')) {
+                return [
+                    'siap' => false,
+                    'driver' => $driver,
+                    'mysqldump' => null,
+                    'mysql' => null,
+                    'pesan' => 'Ekstensi PHP zip belum aktif. Aktifkan zip agar arsip backup dapat dibuat.',
+                ];
+            }
+
             try {
                 $mysqldump = $this->binaryDatabase('mysqldump');
                 $mysql = $this->binaryDatabase('mysql');
@@ -120,12 +130,17 @@ class BackupService
                     'pesan' => 'MySQL dan lokasi penyimpanan backup siap digunakan.',
                 ];
             } catch (RuntimeException $exception) {
+                // Shared hosting often does not expose mysql/mysqldump to
+                // PHP processes. Backup and restore still work through the
+                // PDO/ZipArchive implementation below, so missing CLI
+                // binaries are a fallback condition rather than "not ready".
                 return [
-                    'siap' => false,
+                    'siap' => true,
                     'driver' => $driver,
                     'mysqldump' => null,
                     'mysql' => null,
-                    'pesan' => $exception->getMessage(),
+                    'pesan' => 'Mode kompatibel hosting aktif: backup dan restore memakai PHP/PDO tanpa binary mysql. '
+                        .$exception->getMessage(),
                 ];
             }
         });
@@ -555,6 +570,7 @@ class BackupService
     {
         $koneksi = config('database.connections.'.config('database.default'));
         $binaryPath = rtrim((string) ($koneksi['dump']['dump_binary_path'] ?? ''), '/\\');
+        $pathTerkonfigurasiTidakValid = null;
 
         if ($binaryPath !== '') {
             foreach ([$nama.'.exe', $nama] as $file) {
@@ -564,16 +580,33 @@ class BackupService
                 }
             }
 
-            throw new RuntimeException("Binary {$nama} tidak ditemukan di {$binaryPath}. Periksa DB_DUMP_BINARY_PATH.");
+            // A deployment commonly inherits a cached .env value from the
+            // developer's Windows/Laragon machine. Do not let that stale path
+            // prevent a Linux host from using /usr/bin or its normal PATH.
+            $pathTerkonfigurasiTidakValid = $binaryPath;
         }
 
         $ditemukan = (new ExecutableFinder)->find($nama);
 
-        if (! $ditemukan) {
-            throw new RuntimeException("Binary {$nama} tidak ditemukan. Atur DB_DUMP_BINARY_PATH ke folder bin MySQL.");
+        if ($ditemukan) {
+            return $ditemukan;
         }
 
-        return $ditemukan;
+        foreach (['/usr/bin', '/usr/local/bin', '/usr/local/mysql/bin', '/opt/mysql/bin'] as $direktori) {
+            $candidate = $direktori.DIRECTORY_SEPARATOR.$nama;
+            if (is_file($candidate) && is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        if ($pathTerkonfigurasiTidakValid) {
+            throw new RuntimeException(
+                "Binary {$nama} tidak ditemukan. DB_DUMP_BINARY_PATH masih menunjuk ke {$pathTerkonfigurasiTidakValid}; "
+                .'kosongkan nilainya agar hosting memakai PATH, atau isi dengan folder bin MySQL di server.'
+            );
+        }
+
+        throw new RuntimeException("Binary {$nama} tidak ditemukan. Atur DB_DUMP_BINARY_PATH ke folder bin MySQL di server.");
     }
 
     private function ujiBinary(string $binary): void

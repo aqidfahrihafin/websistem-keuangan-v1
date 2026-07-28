@@ -908,6 +908,8 @@ Accept: application/json</code></pre>
         <tr><td><code>GET</code></td><td><code>/api/wali/topup/pengaturan</code></td><td>Info minimal saldo &amp; jadwal biaya Midtrans untuk disclaimer top up</td></tr>
         <tr><td><code>GET</code></td><td><code>/api/wali/topup/{topup}</code></td><td>Cek status top up</td></tr>
         <tr><td><code>POST</code></td><td><code>/api/wali/topup/{topup}/sync</code></td><td>Sinkronkan status manual langsung dari Midtrans</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/wali/device-token</code></td><td>Daftarkan/perbarui token FCM perangkat setelah login</td></tr>
+        <tr><td><code>DELETE</code></td><td><code>/api/wali/device-token</code></td><td>Hapus token FCM perangkat saat logout</td></tr>
     </tbody>
 </table>
 
@@ -915,7 +917,7 @@ Accept: application/json</code></pre>
 
 <ul>
     <li>Semua nominal uang dalam <strong>Rupiah bulat</strong> (integer, tanpa desimal).</li>
-    <li>Belum ada endpoint untuk push notification saat tagihan baru terbit atau top up selesai &mdash; saat ini aplikasi mobile perlu polling. Ini masuk rencana Fase 2.</li>
+    <li>Push notification Firebase sudah aktif. Aplikasi mendaftarkan token lewat <code>POST /api/wali/device-token</code> dan menghapusnya lewat <code>DELETE /api/wali/device-token</code>. Backend mengirim notifikasi untuk tagihan baru, pengingat tiga hari sebelum jatuh tempo, top up berhasil, penarikan disetujui, serta debit saldo untuk pembayaran tagihan/kantin, transfer, dan penarikan tunai. Polling tetap dipakai untuk menyegarkan data layar, bukan sebagai pengganti push.</li>
     <li>Belum ada endpoint self-registration atau &ldquo;lupa kata sandi&rdquo; (reset tanpa tahu password lama) &mdash; <code>POST /api/wali/password</code> hanya untuk mengganti password yang <em>sudah diketahui</em> (termasuk kata sandi awal berupa No. KK). Pembuatan akun tetap hanya lewat admin di portal web; jika wali benar-benar lupa kata sandi, admin yang harus mengaturkannya ulang. <strong>Lupa PIN transaksi mengikuti pola yang sama</strong> &mdash; tidak ada endpoint self-service reset, hanya admin lewat <code>/admin/users</code>.</li>
     <li>Kredensial Midtrans (server key / client key) diatur oleh admin lewat panel web (<code>/admin/pengaturan/midtrans</code>), bisa sandbox atau produksi. Jika <code>POST /topup</code> mengembalikan 422 &ldquo;Midtrans belum dikonfigurasi&rdquo;, hubungi admin pondok.</li>
     <li>PIN transaksi, batas minimum saldo, dan pembayaran kantin/transfer antar santri semuanya baru ditambahkan pada rilis yang sama (lihat bagian <em>PIN Transaksi</em>, <em>Modul Kantin</em>, dan <em>Transfer Saldo Antar Santri</em> di atas) &mdash; versi aplikasi mobile yang lebih lama dari itu tidak mengirim field <code>pin</code> sama sekali dan akan selalu mendapat <code>422</code> validasi pada ketiga endpoint aksi tsb.</li>

@@ -11,7 +11,7 @@
     <thead><tr><th>Role</th><th>Akses</th></tr></thead>
     <tbody>
         <tr><td><strong>Admin</strong></td><td>Akses penuh: kelola pengguna, santri, kartu, tagihan, verifikasi transaksi, pengaturan</td></tr>
-        <tr><td><strong>Bendahara</strong></td><td>Sama seperti admin untuk operasional harian (kelola santri, tagihan, verifikasi transaksi, penarikan)</td></tr>
+        <tr><td><strong>Bendahara</strong></td><td>Operasional keuangan: tagihan, transaksi, top up, penarikan, laporan keuangan, dan leger kas; tidak mengelola data kesantrian, kantin, pengguna, perangkat, backup, atau pengaturan sistem</td></tr>
         <tr><td><strong>Pengasuh</strong></td><td>Akses baca saja &mdash; dashboard &amp; laporan santri, tidak ada aksi yang mengubah data</td></tr>
         <tr><td><strong>Wali</strong></td><td>Lihat saldo &amp; tagihan anak (bisa lebih dari satu, otomatis terkelompok lewat No. KK), bayar tagihan dari saldo atau langsung via Midtrans, top up saldo, bayar kantin via QR, transfer saldo antar anak dalam satu KK &mdash; empat aksi pemindah saldo terakhir dari aplikasi mobile digerbangi PIN transaksi 6 digit (lihat <code>PinService</code> di halaman <a href="{{ route('dev.api.wali') }}" wire:navigate>API Wali</a>)</td></tr>
         <tr><td><strong>Santri</strong></td><td>Lihat saldo, tagihan, riwayat transaksi, dan mengajukan request penarikan tunai</td></tr>
@@ -36,7 +36,7 @@
 <h2>Teknologi</h2>
 
 <ul>
-    <li><strong>Backend</strong>: Laravel 13, PHP 8.3+</li>
+    <li><strong>Backend</strong>: Laravel 13, PHP 8.4.1+</li>
     <li><strong>Frontend</strong>: Livewire 4 + Blade, Tailwind CSS v4</li>
     <li><strong>Database</strong>: MySQL</li>
     <li><strong>Auth web</strong>: Session &mdash; email/No. KK untuk wali, email untuk staf lain, NIS untuk santri (deteksi otomatis dari format input, lihat <code>Auth/LoginForm</code>)</li>
@@ -74,10 +74,10 @@
     <li>Proses penggantian database dibungkus mode maintenance (<code>artisan down</code>/<code>up</code>) di dalam <code>try/finally</code>, supaya aplikasi tetap kembali menyala walau proses restore gagal di tengah jalan.</li>
     <li>Nama file backup selalu disaring lewat <code>basename()</code> sebelum dipakai untuk unduh/hapus/restore, mencegah path traversal dari input pengguna.</li>
     <li>Karena test suite Pest jalan di atas SQLite in-memory, round-trip <code>mysqldump</code>/<code>mysql</code> yang sesungguhnya tidak bisa diuji otomatis &mdash; sudah diverifikasi manual terhadap MySQL asli di lingkungan dev, termasuk mensimulasikan proses web server tanpa PATH shell interaktif.</li>
-    <li><strong>Kalau backup gagal dengan pesan <code>'mysqldump' is not recognized</code></strong>: proses web server (mis. layanan Laragon) sering tidak mewarisi PATH shell interaktif kamu. Set <code>DB_DUMP_BINARY_PATH</code> di <code>.env</code> ke folder berisi <code>mysqldump(.exe)</code>/<code>mysql(.exe)</code> (pakai forward slash, lihat komentar di <code>.env.example</code>). Karena ini, dump database sengaja <strong>tidak</strong> dikompres gzip terpisah (<code>database_dump_compressor</code> di <code>config/backup.php</code> dibiarkan <code>null</code>) &mdash; itu butuh binary <code>gzip</code> eksternal yang belum tentu ada di PATH Windows; kompresi tetap terjadi di level zip-nya.</li>
+    <li><strong>Lokasi binary database:</strong> pada Linux/shared hosting, kosongkan <code>DB_DUMP_BINARY_PATH</code> agar sistem mencari <code>mysqldump</code>/<code>mysql</code> dari PATH dan lokasi umum server. Pada Windows/Laragon, isi dengan folder bin MySQL memakai forward slash. Setelah mengubah <code>.env</code>, jalankan <code>php artisan optimize:clear</code> lalu <code>php artisan config:cache</code>. Jika hosting memang tidak menyediakan kedua binary, halaman tetap siap dan otomatis memakai mode kompatibel PHP/PDO untuk membuat maupun memulihkan dump.</li>
 </ul>
 
-<h2>Batasan Saat Ini (Fase 1)</h2>
+<h2>Batasan Saat Ini</h2>
 
 <p>Fitur berikut <strong>belum</strong> diimplementasikan penuh &mdash; arsitekturnya sudah disiapkan, tapi butuh perangkat keras/kebutuhan nyata untuk dilanjutkan:</p>
 

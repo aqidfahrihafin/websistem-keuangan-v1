@@ -9,7 +9,7 @@
     ],
     "license": "MIT",
     "require": {
-        "php": "^8.3",
+        "php": "^8.4.1",
         "barryvdh/laravel-dompdf": "^3.1",
         "kreait/laravel-firebase": "^7.2",
         "laravel/framework": "^13.8",

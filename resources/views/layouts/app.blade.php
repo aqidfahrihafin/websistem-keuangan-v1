@@ -23,7 +23,7 @@
     @endif
 </head>
 <body
-    class="app-page h-dvh overflow-hidden bg-slate-100/80 text-slate-800 antialiased"
+    class="app-page control-shell-page h-dvh overflow-hidden bg-slate-100/80 text-slate-800 antialiased"
     x-data="{
         sidebarOpen: false,
         isDesktop: window.matchMedia('(min-width: 1024px)').matches,
@@ -357,8 +357,8 @@
             class="no-scrollbar relative flex h-dvh min-w-0 flex-1 flex-col overflow-y-auto"
             :inert="sidebarOpen && !isDesktop"
         >
-            <header class="sticky top-0 z-20 border-b border-white/80 bg-white/80 shadow-sm shadow-slate-200/40 backdrop-blur-xl">
-                <div class="h-0.5 bg-linear-to-r from-teal-600 via-teal-400 to-sky-300"></div>
+            <header id="app-topbar" class="sticky top-0 z-20 border-b border-white/80 bg-white/80 shadow-sm shadow-slate-200/40 backdrop-blur-xl">
+                <div class="app-topbar-accent h-0.5 bg-linear-to-r from-teal-600 via-teal-400 to-sky-300"></div>
                 <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-4 py-3.5 sm:flex-nowrap sm:gap-4 sm:px-6 lg:px-8">
                     <div class="flex min-w-0 flex-1 items-center gap-3">
                         <button
