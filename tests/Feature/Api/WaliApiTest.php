@@ -47,6 +47,22 @@ it('logs in a wali and returns a bearer token', function () {
     ])->assertOk()->assertJsonStructure(['token', 'user' => ['id', 'name', 'email', 'phone', 'must_change_password']]);
 });
 
+it('rebuilds wali-santri links during login so the mobile app can load the child list', function () {
+    $wali = makeUserWithRole('wali', ['email' => 'wali-link@test.com', 'password' => 'password']);
+    $santri = Santri::factory()->create();
+
+    $wali->update(['no_kk' => $santri->keluarga->no_kk]);
+    $wali->refresh();
+
+    $this->postJson('/api/wali/login', [
+        'login' => 'wali-link@test.com',
+        'password' => 'password',
+        'device_name' => 'iphone-15',
+    ])->assertOk();
+
+    expect($wali->fresh()->anakAsuh()->pluck('santris.id')->contains($santri->id))->toBeTrue();
+});
+
 it('logs in a wali using their No. KK as the login identifier', function () {
     makeUserWithRole('wali', ['no_kk' => '1234567890123456', 'password' => '1234567890123456']);
 
@@ -96,6 +112,7 @@ it('lists only the santri linked to the authenticated wali', function () {
     [$wali, $santri] = makeWaliWithAnak();
     $other = Santri::factory()->create();
 
+    $this->withoutExceptionHandling();
     Sanctum::actingAs($wali, ['wali']);
 
     $ids = collect($this->getJson('/api/wali/anak')->assertOk()->json('data'))->pluck('id');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Wali;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\KeluargaLinkingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function login(Request $request): JsonResponse
+    public function login(Request $request, KeluargaLinkingService $linking): JsonResponse
     {
         $data = $request->validate([
             'login' => ['required', 'string'],
@@ -36,6 +37,8 @@ class AuthController extends Controller
                 'login' => ['Akun ini bukan akun wali santri.'],
             ]);
         }
+
+        $linking->syncForUser($user->fresh());
 
         $token = $user->createToken($data['device_name'], ['wali'])->plainTextToken;
 

@@ -19,13 +19,20 @@
                 tone="amber"
                 icon="receipt"
             />
-            <div class="card relative flex min-h-44 flex-col justify-between overflow-hidden border-white/10 bg-linear-to-br from-teal-700 to-slate-900 p-5 text-white ring-teal-700/20">
-                <span class="pointer-events-none absolute -right-8 -top-12 h-36 w-36 rounded-full bg-teal-300/20 blur-2xl"></span>
+            <div
+                class="relative flex min-h-44 flex-col justify-between overflow-hidden rounded-2xl border p-5 shadow-lg"
+                style="border-color: #134e4a; background: linear-gradient(135deg, #115e59 0%, #0f172a 100%); color: #ffffff;"
+            >
+                <span class="pointer-events-none absolute -right-8 -top-12 h-36 w-36 rounded-full bg-teal-300/15 blur-2xl"></span>
                 <div class="relative">
-                    <p class="text-sm font-semibold text-teal-100">Top up saldo</p>
-                    <p class="mt-2 text-sm leading-relaxed text-slate-200">Tambahkan saldo santri dengan pembayaran Midtrans yang aman.</p>
+                    <p class="text-sm font-bold" style="color: #ffffff;">Top up saldo</p>
+                    <p class="mt-2 text-sm font-medium leading-relaxed" style="color: #f0fdfa;">Tambahkan saldo santri dengan pembayaran Midtrans yang aman.</p>
                 </div>
-                <a href="{{ route('wali.topup') }}" class="relative mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-teal-800 shadow-sm transition hover:-translate-y-px hover:bg-teal-50 hover:shadow-md">
+                <a
+                    href="{{ route('wali.topup') }}"
+                    class="relative mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold shadow-sm transition hover:-translate-y-px hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    style="background: #ffffff; color: #134e4a;"
+                >
                     Top Up Sekarang
                     <span aria-hidden="true">&rarr;</span>
                 </a>
