@@ -5,6 +5,11 @@
 
 <p>Aplikasi kartu/wallet cashless untuk mengelola keuangan santri di Pondok Pesantren Latee (Annuqayah): saldo santri, tagihan rutin (SPP dll), penarikan tunai dengan verifikasi sidik jari, dan top up saldo oleh wali santri lewat transfer/e-wallet (Midtrans). Dibangun sebagai satu aplikasi Laravel + Livewire, dengan API terpisah untuk kebutuhan aplikasi mobile wali. Ada juga halaman kios (<code>/kios</code>) &mdash; layar tap-kartu publik tanpa login untuk cek saldo santri &amp; ajukan penarikan tunai.</p>
 
+<div class="not-prose mb-6 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900">
+    <p class="font-bold">Operasional produksi</p>
+    <p class="mt-1">Sebelum instalasi, perpindahan domain, atau migrasi provider hosting, ikuti halaman <a href="{{ route('dev.deployment') }}" wire:navigate class="font-semibold underline">Deployment &amp; Mitigasi Hosting</a>. Panduan tersebut mencakup kontrak JSON web&ndash;mobile, smoke test, observabilitas, dan rollback.</p>
+</div>
+
 <h2>Peran &amp; Akses</h2>
 
 <table>

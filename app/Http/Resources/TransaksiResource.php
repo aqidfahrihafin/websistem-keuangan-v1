@@ -16,11 +16,13 @@ class TransaksiResource extends JsonResource
             'uuid' => $this->uuid,
             'jenis' => $this->jenis,
             'arah' => $this->arah,
-            'nominal' => $this->nominal,
-            'saldo_sebelum' => $this->saldo_sebelum,
-            'saldo_sesudah' => $this->saldo_sesudah,
+            'nominal' => (int) $this->nominal,
+            'saldo_sebelum' => (int) $this->saldo_sebelum,
+            'saldo_sesudah' => (int) $this->saldo_sesudah,
             'status' => $this->status,
-            'metode' => $this->metode,
+            // Legacy rows may predate the metode field. Older mobile builds
+            // require a string here, so keep them readable as system entries.
+            'metode' => $this->metode ?? 'sistem',
             // The specific payment channel (bni_va/bca_va/bri_va/qris) for a
             // Midtrans-driven transaksi - the mobile receipt shows this
             // instead of the coarse 'metode' ("Midtrans") when available,
@@ -32,8 +34,12 @@ class TransaksiResource extends JsonResource
             // the wali paid it on top or the pondok absorbed it. Null for
             // every other jenis, and for an older topup_transfer_wali row
             // recorded before this was tracked.
-            'biaya_midtrans' => $this->metadata['biaya_midtrans'] ?? null,
-            'biaya_ditanggung_wali' => $this->metadata['biaya_ditanggung_wali'] ?? null,
+            'biaya_midtrans' => isset($this->metadata['biaya_midtrans'])
+                ? (int) $this->metadata['biaya_midtrans']
+                : null,
+            'biaya_ditanggung_wali' => isset($this->metadata['biaya_ditanggung_wali'])
+                ? (bool) $this->metadata['biaya_ditanggung_wali']
+                : null,
             'catatan' => $this->catatan,
             'created_at' => $this->created_at?->toIso8601String(),
             // Present only once this transaksi's kwitansi resmi has been
@@ -46,11 +52,11 @@ class TransaksiResource extends JsonResource
             // null for every transaksi not linked to a tagihan at all.
             'tagihan' => $this->tagihan ? [
                 'id' => $this->tagihan->id,
-                'jenis_tagihan_nama' => $this->tagihan->jenisTagihan->nama,
+                'jenis_tagihan_nama' => $this->tagihan->jenisTagihan?->nama,
                 'periode_label' => $this->tagihan->periode_label,
-                'nominal' => $this->tagihan->nominal,
-                'nominal_terbayar' => $this->tagihan->nominal_terbayar,
-                'sisa' => $this->tagihan->sisa(),
+                'nominal' => (int) $this->tagihan->nominal,
+                'nominal_terbayar' => (int) $this->tagihan->nominal_terbayar,
+                'sisa' => (int) $this->tagihan->sisa(),
                 'status' => $this->tagihan->status,
             ] : null,
             // The counterparty on the other side of this transaksi - who a

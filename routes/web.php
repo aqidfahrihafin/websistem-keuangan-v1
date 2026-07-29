@@ -181,6 +181,7 @@ Route::middleware(['auth', 'role:dev'])->prefix('dev')->name('dev.')->group(func
     Route::livewire('/', 'dev.tentang')->name('dashboard');
     Route::livewire('/tentang', 'dev.tentang')->name('tentang');
     Route::livewire('/instalasi', 'dev.instalasi')->name('instalasi');
+    Route::livewire('/deployment', 'dev.deployment')->name('deployment');
     Route::livewire('/skema-database', 'dev.skema-database')->name('skema-database');
     Route::livewire('/api/wali', 'dev.api-wali')->name('api.wali');
     Route::livewire('/api/kiosk', 'dev.api-kiosk')->name('api.kiosk');

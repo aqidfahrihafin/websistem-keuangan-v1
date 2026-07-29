@@ -54,9 +54,14 @@ it('allows only dev to reach the internal documentation area', function () {
     $this->actingAs($dev)->get('/dev')->assertOk();
     $this->actingAs($dev)->get('/dev/tentang')->assertOk();
     $this->actingAs($dev)->get('/dev/instalasi')->assertOk();
+    $this->actingAs($dev)->get('/dev/deployment')
+        ->assertOk()
+        ->assertSee('Deployment &amp; Mitigasi Hosting', false)
+        ->assertSee('Kontrak Tipe JSON');
     $this->actingAs($dev)->get('/dev/api/wali')->assertOk();
     $this->actingAs($dev)->get('/dev/api/kiosk')->assertOk();
 
     $this->actingAs($admin)->get('/dev')->assertForbidden();
+    $this->actingAs($admin)->get('/dev/deployment')->assertForbidden();
     $this->actingAs($dev)->get('/admin')->assertForbidden();
 });

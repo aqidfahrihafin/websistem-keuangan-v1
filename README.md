@@ -1,3 +1,24 @@
+# E-Mall Annuqayah
+
+Sistem keuangan santri berbasis Laravel dengan portal multi-role dan REST API
+untuk aplikasi mobile wali.
+
+## Dokumentasi
+
+- Dokumentasi internal role Dev: `/dev`
+- Instalasi dan kebutuhan sistem: `/dev/instalasi`
+- Deployment, migrasi hosting, smoke test, dan rollback: `/dev/deployment`
+- Dokumentasi API Wali: `/dev/api/wali` dan [`docs/API-WALI.md`](docs/API-WALI.md)
+- Checklist hosting Markdown: [`docs/DEPLOYMENT-HOSTING.md`](docs/DEPLOYMENT-HOSTING.md)
+- Dokumentasi aplikasi mobile tersedia pada `README.md` repository mobile
+  `mobilesistem-keuangan-v1`.
+
+> Saat berpindah hosting, jangan hanya menguji login. Daftar anak, saldo,
+> tagihan, dan transaksi adalah request API terpisah. Gunakan checklist
+> deployment untuk memverifikasi kontrak tipe JSON lintas PHP/PDO/MySQL.
+
+---
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

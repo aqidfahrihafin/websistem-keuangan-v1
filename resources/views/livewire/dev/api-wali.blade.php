@@ -7,6 +7,11 @@
 
 <p>Endpoint ini terpisah dari portal web wali (<code>/wali/*</code>, berbasis session Livewire) &mdash; API ini stateless dan didesain untuk dikonsumsi aplikasi mobile native.</p>
 
+<div class="not-prose mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+    <p class="font-bold">Kontrak tipe JSON lintas hosting</p>
+    <p class="mt-1">Semua ID, saldo, nominal, sisa, dan persentase harus berupa JSON number; flag harus boolean; <code>data</code> harus array; field wajib tidak boleh null. Normalisasi dilakukan di Laravel Resources karena PHP/PDO/MySQL pada provider berbeda dapat mengembalikan BIGINT/DECIMAL sebagai string. Parser mobile tetap menerima angka/string untuk kompatibilitas mundur. Lihat prosedur uji dan diagnosis lengkap di <a href="{{ route('dev.deployment') }}" wire:navigate class="font-semibold underline">Deployment &amp; Mitigasi Hosting</a>.</p>
+</div>
+
 <h2>Info Aplikasi (Publik)</h2>
 
 <p>Satu-satunya endpoint di API ini yang benar-benar tidak butuh apa pun &mdash; tidak token, tidak login sama sekali. Dipakai aplikasi mobile untuk menampilkan branding (logo, nama aplikasi, nama pondok) di layar splash dan login, yaitu sebelum sesi apa pun ada. Datanya diambil langsung dari <code>AppSettingsService</code>, sumber yang sama dipakai portal web (lihat halaman <a href="{{ route('dev.skema-database') }}" wire:navigate>Skema Database</a>, tabel <code>settings</code>) &mdash; ubah lewat <code>/admin/pengaturan/aplikasi</code>, otomatis kepakai di web dan mobile.</p>
@@ -114,6 +119,8 @@
 Accept: application/json</code></pre>
 
 <p>Login dibatasi <strong>6 percobaan per menit per IP</strong> (throttle bawaan Laravel).</p>
+
+<p>Login yang berhasil hanya membuktikan endpoint autentikasi sehat. Setelah login, aplikasi melakukan request terpisah ke <code>/wali/anak</code>, lalu endpoint saldo, tagihan, dan transaksi. Setiap endpoint tersebut wajib masuk smoke test deployment.</p>
 
 <h3>Logout</h3>
 

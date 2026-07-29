@@ -4,6 +4,20 @@ REST API untuk aplikasi mobile wali santri. Semua endpoint mengembalikan JSON. B
 
 Endpoint ini terpisah dari portal web wali (`/wali/*`, berbasis session Livewire) — API ini stateless dan didesain untuk dikonsumsi aplikasi mobile native.
 
+## Kontrak Tipe JSON
+
+Kontrak ini harus sama pada development, staging, dan semua provider hosting:
+
+- ID, saldo, nominal, sisa, dan persentase adalah JSON number.
+- Flag adalah JSON boolean.
+- `data` selalu array, termasuk ketika kosong.
+- Field wajib tidak boleh `null`; field opsional harus memiliki fallback mobile.
+
+PHP/PDO/MySQL pada provider berbeda dapat mengembalikan BIGINT/DECIMAL sebagai
+string. Laravel Resources wajib menormalkan tipe dan parser mobile tetap toleran
+untuk kompatibilitas mundur. Checklist deployment dan diagnosis lengkap ada di
+[`DEPLOYMENT-HOSTING.md`](DEPLOYMENT-HOSTING.md).
+
 ## Autentikasi
 
 Autentikasi memakai [Laravel Sanctum](https://laravel.com/docs/sanctum) personal access token (Bearer token), bukan session/cookie. Setiap token dibuat dengan **ability** `wali` — token ini tidak bisa dipakai untuk endpoint lain (mis. endpoint kiosk internal) dan sebaliknya.
@@ -18,7 +32,7 @@ POST /api/wali/login
 
 | Field | Tipe | Wajib | Keterangan |
 |---|---|---|---|
-| `email` | string | ya | Email akun wali |
+| `login` | string | ya | Email akun wali atau No. KK 16 digit. No. KK hanya valid bila dimiliki tepat satu akun wali. |
 | `password` | string | ya | Kata sandi |
 | `device_name` | string | ya | Nama perangkat, mis. `"iPhone 15 - Budi"`. Dipakai sebagai label token, memudahkan wali melihat/mencabut sesi per perangkat di kemudian hari. |
 
@@ -28,7 +42,7 @@ POST /api/wali/login
 curl -X POST https://keuangan.pesantren-latee.test/api/wali/login \
   -H "Accept: application/json" \
   -H "Content-Type: application/json" \
-  -d '{"email":"wali@pesantren.test","password":"password","device_name":"iPhone 15 - Budi"}'
+  -d '{"login":"wali@pesantren.test","password":"password","device_name":"iPhone 15 - Budi"}'
 ```
 
 **200 OK**
@@ -40,17 +54,18 @@ curl -X POST https://keuangan.pesantren-latee.test/api/wali/login \
     "id": 12,
     "name": "Abdurrahman",
     "email": "wali@pesantren.test",
-    "phone": "081234567890"
+    "phone": "081234567890",
+    "must_change_password": false
   }
 }
 ```
 
-**422 Unprocessable Entity** — email/password salah, atau akun bukan akun wali:
+**422 Unprocessable Entity** — login/password salah, No. KK ambigu, atau akun bukan akun wali:
 
 ```json
 {
-  "message": "Email atau kata sandi salah.",
-  "errors": { "email": ["Email atau kata sandi salah."] }
+  "message": "Email/No. KK atau kata sandi salah.",
+  "errors": { "login": ["Email/No. KK atau kata sandi salah."] }
 }
 ```
 
@@ -62,6 +77,10 @@ Accept: application/json
 ```
 
 Login dibatasi **6 percobaan per menit per IP** (throttle bawaan Laravel).
+
+Login yang berhasil hanya membuktikan endpoint autentikasi sehat. Aplikasi
+melakukan request terpisah untuk anak, saldo, tagihan, dan transaksi; semuanya
+wajib diuji saat deployment atau migrasi hosting.
 
 ### Logout
 

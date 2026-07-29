@@ -3,6 +3,11 @@
 
 <h1>Instalasi &amp; Kebutuhan Sistem</h1>
 
+<div class="not-prose mb-6 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900">
+    <p class="font-bold">Akan memasang atau memindahkan server produksi?</p>
+    <p class="mt-1">Gunakan checklist lengkap pada halaman <a href="{{ route('dev.deployment') }}" wire:navigate class="font-semibold underline">Deployment &amp; Mitigasi Hosting</a>. Halaman tersebut mencakup backup, DNS, kontrak JSON mobile, smoke test seluruh endpoint, diagnosis kasus login berhasil tetapi data gagal tampil, dan prosedur rollback.</p>
+</div>
+
 <h2>Kebutuhan</h2>
 
 <table>
@@ -87,6 +92,8 @@ php artisan serve</code></pre>
 ./vendor/bin/pest</code></pre>
 
 <p>Test memakai SQLite in-memory (dikonfigurasi di <code>phpunit.xml</code>), jadi tidak menyentuh database MySQL development.</p>
+
+<p>Untuk perubahan API mobile, minimal jalankan <code>tests/Feature/Api/WaliApiTest.php</code> dan verifikasi tipe JSON, bukan hanya nilai. Perbedaan driver MySQL/PDO antar-hosting dapat mengekspos <code>BIGINT</code>/<code>DECIMAL</code> sebagai string; Laravel Resources harus mengubahnya menjadi integer/boolean sesuai kontrak.</p>
 
 <h2>Setup Midtrans (Sandbox &rarr; Produksi)</h2>
 

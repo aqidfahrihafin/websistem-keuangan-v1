@@ -170,6 +170,7 @@
             'items' => [
                 ['route' => 'dev.tentang', 'match' => ['dev.dashboard', 'dev.tentang'], 'label' => 'Tentang Aplikasi', 'icon' => 'info'],
                 ['route' => 'dev.instalasi', 'match' => 'dev.instalasi', 'label' => 'Instalasi & Kebutuhan', 'icon' => 'cog'],
+                ['route' => 'dev.deployment', 'match' => 'dev.deployment', 'label' => 'Deployment & Mitigasi', 'icon' => 'shield'],
                 ['route' => 'dev.skema-database', 'match' => 'dev.skema-database', 'label' => 'Skema Database', 'icon' => 'database'],
                 ['route' => 'dev.api.wali', 'match' => 'dev.api.wali', 'label' => 'Dokumentasi API Wali', 'icon' => 'document'],
                 ['route' => 'dev.api.kiosk', 'match' => 'dev.api.kiosk', 'label' => 'Dokumentasi API Kiosk', 'icon' => 'document'],
