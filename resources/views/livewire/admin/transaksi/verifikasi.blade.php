@@ -1,4 +1,7 @@
 <div class="mx-auto max-w-2xl space-y-4">
+    <x-alert-banner type="success" :message="$statusMessage" />
+    <x-alert-banner type="error" :message="$errorMessage ?: ($errors->any() ? $errors->first() : null)" />
+
     <x-warning-banner variant="warning" title="Langsung menambah saldo santri">
         Hanya catat setoran setelah uang tunai benar-benar diterima. Saldo santri bertambah seketika dan tidak melalui proses verifikasi tambahan.
     </x-warning-banner>
@@ -16,14 +19,16 @@
         <x-form-section title="Catat Setoran" description="Santri: {{ $santri->nama }} ({{ $santri->nis }}) — Saldo saat ini: Rp {{ number_format($santri->saldo?->saldo ?? 0, 0, ',', '.') }}">
             <x-form-field label="Nominal Setoran" required :error="$errors->first('nominal')">
                 <div class="flex gap-2">
-                    <input type="number" wire:model="nominal" placeholder="Contoh: 50000" class="field-input mt-0 flex-1">
+                    <input type="number" wire:model.live="nominal" min="1" placeholder="Contoh: 50000" class="field-input mt-0 flex-1">
                     <x-confirm-button
                         action="catatSetoran"
                         title="Catat Setoran Tunai"
-                        message="Saldo {{ $santri->nama }} akan bertambah sebesar nominal yang dimasukkan. Pastikan uang tunai sudah diterima sebelum melanjutkan."
+                        message="Saldo {{ $santri->nama }} akan ditambah sebesar Rp {{ number_format((int) ($nominal ?? 0), 0, ',', '.') }}. Pastikan nominal sesuai dan uang tunai sudah diterima sebelum melanjutkan."
                         confirmText="Ya, Catat Setoran"
+                        loadingText="Sedang Mencatat..."
                         variant="warning"
-                        class="btn-primary"
+                        class="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+                        :disabled="($nominal ?? 0) < 1"
                     >Catat Setoran</x-confirm-button>
                 </div>
             </x-form-field>

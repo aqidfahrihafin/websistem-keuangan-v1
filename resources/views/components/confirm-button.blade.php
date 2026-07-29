@@ -3,6 +3,7 @@
     'title' => 'Konfirmasi Tindakan',
     'message' => 'Apakah Anda yakin ingin melanjutkan?',
     'confirmText' => 'Ya, lanjutkan',
+    'loadingText' => 'Memproses...',
     'cancelText' => 'Batal',
     'variant' => 'danger',
 ])
@@ -58,7 +59,17 @@
             <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ $message }}</p>
             <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button type="button" x-on:click="confirmOpen = false" class="btn-secondary w-full sm:w-auto">{{ $cancelText }}</button>
-                <button type="button" x-on:click="confirmOpen = false" wire:click="{{ $action }}" class="{{ $confirmClass }} w-full sm:w-auto">{{ $confirmText }}</button>
+                <button
+                    type="button"
+                    x-on:click="confirmOpen = false"
+                    wire:click="{{ $action }}"
+                    wire:loading.attr="disabled"
+                    wire:target="{{ $action }}"
+                    class="{{ $confirmClass }} w-full disabled:cursor-wait disabled:opacity-60 sm:w-auto"
+                >
+                    <span wire:loading.remove wire:target="{{ $action }}">{{ $confirmText }}</span>
+                    <span wire:loading wire:target="{{ $action }}">{{ $loadingText }}</span>
+                </button>
             </div>
         </div>
     </div>
