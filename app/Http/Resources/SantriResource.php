@@ -25,7 +25,10 @@ class SantriResource extends JsonResource
                 'nama' => $this->kamar->nama,
             ] : null),
             'foto_url' => $this->foto_path ? asset('storage/'.$this->foto_path) : null,
-            'saldo' => $this->whenLoaded('saldo', fn () => $this->saldo?->saldo ?? 0, 0),
+            // MySQL/PDO can expose BIGINT values as numeric strings on some
+            // hosting configurations. Keep the public API contract stable:
+            // Flutter expects a JSON number here, never "100000".
+            'saldo' => $this->whenLoaded('saldo', fn () => (int) ($this->saldo?->saldo ?? 0), 0),
             // Always present (not $this->when()'d away) - a Santri fetched
             // outside a wali's own anakAsuh pivot (e.g. SaudaraController's
             // plain same-KK query) has no pivot at all, and an omitted key
