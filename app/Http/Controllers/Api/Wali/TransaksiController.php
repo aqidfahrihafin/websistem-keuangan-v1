@@ -12,7 +12,7 @@ class TransaksiController extends WaliApiController
     {
         $this->authorizedSantri($santri);
 
-        $transaksis = $santri->transaksis()->with(['santri', 'tagihan.jenisTagihan', 'referensi', 'kwitansi'])->latest()->paginate(20);
+        $transaksis = $santri->transaksis()->with(['santri.lembaga', 'tagihan.jenisTagihan', 'referensi', 'kwitansi'])->latest()->paginate(20);
 
         return TransaksiResource::collection($transaksis);
     }
@@ -23,7 +23,7 @@ class TransaksiController extends WaliApiController
         abort_unless($transaksi->santri_id === $santri->id, 404);
 
         return new TransaksiResource(
-            $transaksi->load(['santri', 'tagihan.jenisTagihan', 'referensi', 'kwitansi'])
+            $transaksi->load(['santri.lembaga', 'tagihan.jenisTagihan', 'referensi', 'kwitansi'])
         );
     }
 }

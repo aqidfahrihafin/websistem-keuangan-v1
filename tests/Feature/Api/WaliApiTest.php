@@ -3,6 +3,7 @@
 use App\Models\Device;
 use App\Models\JenisTagihan;
 use App\Models\Keluarga;
+use App\Models\Lembaga;
 use App\Models\Santri;
 use App\Models\Tagihan;
 use App\Models\TopupWali;
@@ -245,6 +246,8 @@ it('includes tagihan cicilan info on a transaksi still sebagian, and null when u
 
 it('resolves the counterparty (referensi) for kantin payments and transfers, and null for plain topups', function () {
     [$wali, $santri] = makeWaliWithAnak();
+    $lembaga = Lembaga::factory()->create(['nama' => 'MTs Latee']);
+    $santri->update(['lembaga_id' => $lembaga->id]);
     app(WalletService::class)->credit($santri, 300000, Transaksi::JENIS_TOPUP_TUNAI);
 
     $unit = UnitUsaha::factory()->create(['nama' => 'Kantin Barokah', 'kode' => 'KANTIN-01']);
@@ -272,7 +275,8 @@ it('resolves the counterparty (referensi) for kantin payments and transfers, and
     $transfer = collect($data)->firstWhere('jenis', 'transfer_antar_santri');
     expect($transfer['referensi'])->toBe(['type' => 'santri', 'nama' => 'Adik Santri', 'nis' => $adik->nis]);
     expect($transfer['santri']['id'])->toBe($santri->id)
-        ->and($transfer['santri']['nama'])->toBe($santri->nama);
+        ->and($transfer['santri']['nama'])->toBe($santri->nama)
+        ->and($transfer['santri']['lembaga'])->toBe($lembaga->nama);
 
     $credit = $this->getJson("/api/wali/anak/{$adik->id}/transaksi/{$transferRows['credit']->id}")
         ->assertOk()

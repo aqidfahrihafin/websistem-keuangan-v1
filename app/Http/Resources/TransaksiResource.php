@@ -50,7 +50,7 @@ class TransaksiResource extends JsonResource
                 'id' => $this->santri->id,
                 'nama' => $this->santri->nama,
                 'nis' => $this->santri->nis,
-                'lembaga' => $this->santri->lembaga,
+                'lembaga' => $this->santri->lembaga?->nama,
             ] : null,
             // Present only once this transaksi's kwitansi resmi has been
             // issued (pembayaran_tagihan from saldo, and pembayaran_kantin -

@@ -374,7 +374,7 @@ Pedoman aplikasi:
 4. Jika perubahan sudah ditemukan, tampilkan bahwa transaksi berhasil dikonfirmasi. Jika belum dapat dipastikan, minta pengguna memeriksa status/riwayat dan jangan langsung mengulang.
 5. Untuk top up Midtrans, polling status lalu gunakan endpoint sinkronisasi manual jika webhook terlambat.
 
-Respons `401` berarti sesi API telah habis atau token tidak valid. Mobile membersihkan sesi lokal dan mengarahkan ke login dengan penjelasan bahwa pengguna keluar karena sesi berakhir. Penguncian PIN akibat aplikasi tidak aktif berbeda dari sesi API habis: sesi tetap ada dan layar PIN menampilkan alasan penguncian.
+Respons `401` berarti sesi API telah habis atau token tidak valid. Mobile menghapus token yang tidak valid dan mengarahkan ke login dengan penjelasan bahwa pengguna perlu masuk kembali, tetapi konfigurasi PIN/biometrik lokal tetap disimpan dan hanya dipakai kembali bila akun yang login sama. Timeout, maintenance, dan kegagalan jaringan saat `restoreSession()` tidak boleh menghapus token atau PIN; pengguna dapat mencoba ulang lewat PIN ketika koneksi pulih. Kegagalan jaringan juga tidak dihitung sebagai percobaan PIN salah. Penguncian PIN akibat aplikasi tidak aktif berbeda dari sesi API habis: sesi tetap ada dan layar PIN menampilkan alasan penguncian.
 
 ## Ringkasan Endpoint
 
