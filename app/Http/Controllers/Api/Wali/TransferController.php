@@ -25,6 +25,7 @@ class TransferController extends WaliApiController
             // business limit - admin-configurable, see SaldoFloorService.
             'nominal' => ['required', 'integer', 'min:1', 'max:'.$saldoFloor->maksimalNominal()],
             'pin' => ['required', 'digits:6'],
+            'request_id' => ['nullable', 'string', 'max:100'],
         ]);
 
         $this->requirePin($data['pin'], $pinService);
@@ -32,7 +33,13 @@ class TransferController extends WaliApiController
         $ke = Santri::findOrFail($data['ke_santri_id']);
 
         try {
-            $result = $service->transfer($santri, $ke, $data['nominal'], Auth::user());
+            $result = $service->transfer(
+                $santri,
+                $ke,
+                $data['nominal'],
+                Auth::user(),
+                $data['request_id'] ?? null,
+            );
         } catch (InsufficientBalanceException $e) {
             return response()->json(['message' => $e->getMessage(), 'code' => 'saldo_tidak_cukup'], 422);
         } catch (SaldoDiBawahMinimumException $e) {

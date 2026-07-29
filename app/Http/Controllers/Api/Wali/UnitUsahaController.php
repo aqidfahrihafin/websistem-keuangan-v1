@@ -45,6 +45,7 @@ class UnitUsahaController extends WaliApiController
             // business limit - admin-configurable, see SaldoFloorService.
             'nominal' => ['required', 'integer', 'min:1', 'max:'.$saldoFloor->maksimalNominal()],
             'pin' => ['required', 'digits:6'],
+            'request_id' => ['nullable', 'string', 'max:100'],
         ]);
 
         $this->requirePin($data['pin'], $pinService);
@@ -54,7 +55,13 @@ class UnitUsahaController extends WaliApiController
         abort_if($unitUsaha === null, 404, 'Kantin tidak ditemukan.');
 
         try {
-            $transaksi = $service->bayar($santri, $unitUsaha, $data['nominal'], Auth::user());
+            $transaksi = $service->bayar(
+                $santri,
+                $unitUsaha,
+                $data['nominal'],
+                Auth::user(),
+                requestId: $data['request_id'] ?? null,
+            );
         } catch (InsufficientBalanceException $e) {
             return response()->json(['message' => $e->getMessage(), 'code' => 'saldo_tidak_cukup'], 422);
         } catch (SaldoDiBawahMinimumException $e) {

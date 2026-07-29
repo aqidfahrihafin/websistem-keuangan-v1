@@ -11,7 +11,7 @@
 
 <h2>Peta Domain</h2>
 
-<p>26 tabel aplikasi (di luar tabel bawaan Spatie/Sanctum/framework seperti <code>roles</code>, <code>personal_access_tokens</code>, <code>sessions</code>) dikelompokkan menjadi 8 domain. Urutan di bawah kira-kira mengikuti alur data: dari identitas orang, ke struktur santri/keluarga, ke kartu &amp; tagihan, sampai ke pergerakan uang.</p>
+<p>27 tabel aplikasi (di luar tabel bawaan Spatie/Sanctum/framework seperti <code>roles</code>, <code>personal_access_tokens</code>, <code>sessions</code>) dikelompokkan menjadi 9 domain. Urutan di bawah kira-kira mengikuti alur data: dari identitas orang, ke struktur santri/keluarga, ke kartu &amp; tagihan, sampai ke pergerakan uang.</p>
 
 <pre><code>1. Identitas &amp; Akses      users, roles/permissions (Spatie), devices
 2. Struktur Organisasi    lembagas, keluargas, santris, wali_santris
@@ -22,7 +22,8 @@
 7. Penarikan Tunai        kebijakan_penarikans, penarikan_requests
 8. Unit Usaha (Kantin)    unit_usahas, unit_usaha_transaksis, unit_usaha_penarikans,
                           unit_usaha_rekening_perubahans, kebijakan_kantins, kwitansis,
-                          settings, banners, activity_log</code></pre>
+                          settings, banners, activity_log
+9. Notifikasi Wali        wali_notifications</code></pre>
 
 <h2>1. Identitas &amp; Akses</h2>
 
@@ -178,6 +179,7 @@
     <tbody>
         <tr><td><code>settings</code></td><td>Key-value generik (<code>value</code> di-cast <code>encrypted</code>, selalu string &mdash; tidak ada array/JSON, satu key per field). Saat ini dipakai untuk menyimpan kredensial Midtrans (terenkripsi) yang diatur admin lewat <code>/admin/pengaturan/midtrans</code>, batas minimum saldo (<code>SaldoFloorService</code>, key <code>tagihan_minimal_saldo_setelah_bayar</code>), jadwal biaya Midtrans (<code>MidtransFeeService</code>, halaman yang sama &mdash; key <code>midtrans_biaya_dibebankan_wali</code> ("1"/"0") plus satu pasang <code>midtrans_biaya_{bni_va|bca_va|bri_va|qris}_tipe</code> ("tetap"/"persen") &amp; <code>_nilai</code> per channel, 9 key total, semua default kosong/nol sampai admin mengisinya), dan branding aplikasi (<code>AppSettingsService</code> &mdash; <code>app_nama_aplikasi</code>, <code>app_nama_pondok</code>, <code>app_alamat</code>, <code>app_telepon</code>, <code>app_email</code>, dan <code>app_logo_path</code> untuk logo yang diunggah admin lewat <code>/admin/pengaturan/aplikasi</code>, disimpan di disk <code>public</code>) &mdash; semuanya terpisah dari <code>.env</code>.</td></tr>
         <tr><td><code>banners</code></td><td>Banner carousel di layar Home aplikasi mobile wali (pengumuman/promosi, mis. ajakan donasi/hibah wali ke pesantren). Dikelola admin lewat <code>/admin/banner</code>. <code>gambar_path</code> disimpan di disk <code>public</code> (sama seperti <code>app_logo_path</code>), <code>aktif</code> menentukan tampil/tidaknya, <code>urutan</code> menentukan posisi di carousel kalau lebih dari satu banner aktif. Diekspos publik (tanpa token) lewat <code>GET /api/wali/banners</code> &mdash; lihat <a href="{{ route('dev.api.wali') }}" wire:navigate>API Wali</a>. File gambar otomatis terhapus dari storage saat baris ini dihapus (<code>Banner::booted()</code>, event <code>deleting</code>).</td></tr>
+        <tr><td><code>wali_notifications</code></td><td>Pusat notifikasi persisten per wali. Menyimpan judul, isi, tipe, payload JSON, dan <code>read_at</code>. Baris dibuat oleh <code>PushNotificationService</code> sebelum upaya kirim FCM, sehingga pesan tetap tersedia saat perangkat offline atau token FCM tidak ada. Relasi ke <code>users</code> memakai cascade delete dan endpoint API selalu memverifikasi kepemilikan wali.</td></tr>
         <tr><td><code>activity_log</code></td><td>Dari package <code>spatie/laravel-activitylog</code> &mdash; audit trail otomatis untuk perubahan pada model-model penting.</td></tr>
         <tr><td><code>devices</code> (Sanctum)</td><td>Token kios disimpan di <code>personal_access_tokens</code> standar Sanctum, terhubung ke model <code>Device</code> (bukan <code>User</code>) sebagai <code>tokenable</code>.</td></tr>
     </tbody>

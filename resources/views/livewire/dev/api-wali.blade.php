@@ -883,6 +883,33 @@ Accept: application/json</code></pre>
 
 <p>Endpoint ini mengambil status <strong>langsung dari Midtrans</strong> (bukan dari database lokal) dan menjalankan proses settle yang sama seperti webhook &mdash; aman dipanggil berkali-kali (idempoten). Gunakan sebagai tombol &ldquo;Cek Status Sekarang&rdquo; di UI kalau polling <code>GET /topup/{topup}</code> sudah beberapa saat tapi status belum berubah dari <code>pending</code>. Response sama seperti <code>GET /topup/{topup}</code>.</p>
 
+<h2>Pusat Notifikasi &amp; Deep Link</h2>
+
+<p>Pusat notifikasi bersifat <strong>per akun wali</strong>, bukan per santri yang sedang dipilih. Karena satu wali dapat memiliki beberapa santri dalam satu KK, <code>GET /api/wali/notifications</code> menggabungkan notifikasi seluruh santri di bawah akun tersebut. Gunakan field <code>santri_nama</code> untuk menunjukkan pemilik aktivitas pada setiap item.</p>
+
+<p>Setiap notifikasi baru disimpan ke tabel <code>wali_notifications</code> walaupun wali sedang offline atau belum memiliki token FCM. Push Firebase hanya menjadi kanal pengantar; daftar pada ikon lonceng tetap mengambil data persisten dari API.</p>
+
+<ul>
+    <li>Notifikasi transaksi membawa <code>santri_id</code> dan <code>transaksi_id</code>, lalu membuka detail melalui <code>GET /api/wali/anak/{santri}/transaksi/{transaksi}</code>.</li>
+    <li>Notifikasi tagihan membawa <code>santri_id</code> dan <code>tagihan_id</code>, lalu membuka detail melalui <code>GET /api/wali/anak/{santri}/tagihan/{tagihan}</code>.</li>
+    <li>Jenis lain yang belum memiliki halaman objek khusus membuka halaman Detail Notifikasi.</li>
+    <li>Backend selalu memastikan santri, transaksi, tagihan, dan notifikasi benar-benar dimiliki akun wali yang sedang login.</li>
+</ul>
+
+<h2>Mitigasi Transaksi pada Jaringan Lambat</h2>
+
+<p>Endpoint bayar tagihan, transfer antar santri, dan bayar kantin menerima <code>request_id</code> opsional maksimal 100 karakter. Aplikasi membuat satu nilai unik saat proses dimulai dan <strong>memakai nilai yang sama saat retry proses tersebut</strong>. Backend menyimpannya sebagai <code>transaksis.idempotency_key</code>; request ulang mengembalikan transaksi pertama tanpa mendebit saldo lagi.</p>
+
+<ol>
+    <li>Kunci tombol dan tampilkan dialog proses yang tidak dapat ditutup selama request mutasi saldo berlangsung.</li>
+    <li>Jangan menganggap timeout sebagai gagal karena respons dapat terlambat setelah transaksi berhasil dicatat server.</li>
+    <li>Setelah timeout pembayaran tagihan, ambil detail tagihan yang sama. Untuk transfer atau kantin, cari transaksi terkait di riwayat terbaru.</li>
+    <li>Jika perubahan ditemukan, tampilkan bahwa transaksi berhasil dikonfirmasi. Jika belum dapat dipastikan, minta pengguna memeriksa status/riwayat dan jangan langsung mengulang.</li>
+    <li>Untuk top up Midtrans, polling status lalu gunakan endpoint sinkronisasi manual jika webhook terlambat.</li>
+</ol>
+
+<p>Respons <code>401</code> berarti sesi API telah habis atau token tidak valid. Mobile membersihkan sesi lokal dan mengarahkan ke login dengan penjelasan bahwa pengguna keluar karena sesi berakhir. Penguncian PIN akibat aplikasi tidak aktif berbeda dari sesi API habis: sesi tetap ada dan layar PIN menampilkan alasan penguncian.</p>
+
 <h2>Ringkasan Endpoint</h2>
 
 <table>
@@ -902,7 +929,9 @@ Accept: application/json</code></pre>
         <tr><td><code>GET</code></td><td><code>/api/wali/anak/{santri}</code></td><td>Detail satu anak</td></tr>
         <tr><td><code>GET</code></td><td><code>/api/wali/anak/{santri}/saldo</code></td><td>Saldo anak</td></tr>
         <tr><td><code>GET</code></td><td><code>/api/wali/anak/{santri}/transaksi</code></td><td>Riwayat transaksi (paginated)</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/wali/anak/{santri}/transaksi/{transaksi}</code></td><td>Detail transaksi untuk deep link notifikasi</td></tr>
         <tr><td><code>GET</code></td><td><code>/api/wali/anak/{santri}/tagihan</code></td><td>List tagihan</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/wali/anak/{santri}/tagihan/{tagihan}</code></td><td>Detail tagihan untuk deep link notifikasi</td></tr>
         <tr><td><code>POST</code></td><td><code>/api/wali/anak/{santri}/tagihan/{tagihan}/bayar</code></td><td>Bayar tagihan dari saldo (butuh PIN)</td></tr>
         <tr><td><code>POST</code></td><td><code>/api/wali/anak/{santri}/tagihan/{tagihan}/topup/core</code></td><td>Bayar tagihan langsung via Midtrans Core API</td></tr>
         <tr><td><code>GET</code></td><td><code>/api/wali/unit-usaha/{kode}</code></td><td>Cek info kantin dari kode QR</td></tr>
@@ -917,6 +946,9 @@ Accept: application/json</code></pre>
         <tr><td><code>POST</code></td><td><code>/api/wali/topup/{topup}/sync</code></td><td>Sinkronkan status manual langsung dari Midtrans</td></tr>
         <tr><td><code>POST</code></td><td><code>/api/wali/device-token</code></td><td>Daftarkan/perbarui token FCM perangkat setelah login</td></tr>
         <tr><td><code>DELETE</code></td><td><code>/api/wali/device-token</code></td><td>Hapus token FCM perangkat saat logout</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/wali/notifications</code></td><td>Ambil maksimal 100 notifikasi terbaru dan jumlah yang belum dibaca</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/wali/notifications/{notification}/read</code></td><td>Tandai satu notifikasi milik wali sebagai dibaca</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/wali/notifications/read-all</code></td><td>Tandai seluruh notifikasi wali sebagai dibaca</td></tr>
     </tbody>
 </table>
 
@@ -924,7 +956,8 @@ Accept: application/json</code></pre>
 
 <ul>
     <li>Semua nominal uang dalam <strong>Rupiah bulat</strong> (integer, tanpa desimal).</li>
-    <li>Push notification Firebase sudah aktif. Aplikasi mendaftarkan token lewat <code>POST /api/wali/device-token</code> dan menghapusnya lewat <code>DELETE /api/wali/device-token</code>. Backend mengirim notifikasi untuk tagihan baru, pengingat tiga hari sebelum jatuh tempo, top up berhasil, penarikan disetujui, serta debit saldo untuk pembayaran tagihan/kantin, transfer, dan penarikan tunai. Polling tetap dipakai untuk menyegarkan data layar, bukan sebagai pengganti push.</li>
+    <li>Endpoint mutasi saldo (bayar tagihan, transfer antar santri, dan bayar kantin) menerima <code>request_id</code> opsional maksimal 100 karakter. Mobile mempertahankan nilai yang sama selama lima menit; retry dengan <code>request_id</code> yang sama mengembalikan transaksi pertama tanpa debit kedua. Saat respons timeout, aplikasi merekonsiliasi detail/riwayat terlebih dahulu dan memperingatkan pengguna agar tidak mengulang transaksi yang statusnya belum pasti.</li>
+    <li>Push notification Firebase dan pusat notifikasi persisten sudah aktif. Aplikasi mendaftarkan token lewat <code>POST /api/wali/device-token</code> dan menghapusnya lewat <code>DELETE /api/wali/device-token</code>. Setiap pesan juga disimpan di <code>wali_notifications</code>, sehingga tetap dapat dibaca dari ikon lonceng walaupun perangkat offline atau token FCM tidak ada. Backend mengirim notifikasi untuk tagihan baru, pengingat tiga hari sebelum jatuh tempo, top up berhasil, penarikan disetujui, serta debit saldo untuk pembayaran tagihan/kantin, transfer, dan penarikan tunai. Data sebelum migrasi pusat notifikasi tidak di-backfill.</li>
     <li>Belum ada endpoint self-registration atau &ldquo;lupa kata sandi&rdquo; (reset tanpa tahu password lama) &mdash; <code>POST /api/wali/password</code> hanya untuk mengganti password yang <em>sudah diketahui</em> (termasuk kata sandi awal berupa No. KK). Pembuatan akun tetap hanya lewat admin di portal web; jika wali benar-benar lupa kata sandi, admin yang harus mengaturkannya ulang. <strong>Lupa PIN transaksi mengikuti pola yang sama</strong> &mdash; tidak ada endpoint self-service reset, hanya admin lewat <code>/admin/users</code>.</li>
     <li>Kredensial Midtrans (server key / client key) diatur oleh admin lewat panel web (<code>/admin/pengaturan/midtrans</code>), bisa sandbox atau produksi. Jika <code>POST /topup</code> mengembalikan 422 &ldquo;Midtrans belum dikonfigurasi&rdquo;, hubungi admin pondok.</li>
     <li>PIN transaksi, batas minimum saldo, dan pembayaran kantin/transfer antar santri semuanya baru ditambahkan pada rilis yang sama (lihat bagian <em>PIN Transaksi</em>, <em>Modul Kantin</em>, dan <em>Transfer Saldo Antar Santri</em> di atas) &mdash; versi aplikasi mobile yang lebih lama dari itu tidak mengirim field <code>pin</code> sama sekali dan akan selalu mendapat <code>422</code> validasi pada ketiga endpoint aksi tsb.</li>

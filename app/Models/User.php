@@ -91,4 +91,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(WaliDeviceToken::class);
     }
+
+    public function waliNotifications(): HasMany
+    {
+        return $this->hasMany(WaliNotification::class);
+    }
 }

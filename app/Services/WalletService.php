@@ -66,7 +66,7 @@ class WalletService
                 'metode' => Transaksi::METODE_SISTEM,
             ], $attrs));
 
-            DB::afterCommit(fn () => $this->notifyDebit($santri, $nominal, $jenis, $sesudah));
+            DB::afterCommit(fn () => $this->notifyDebit($santri, $transaksi, $nominal, $jenis, $sesudah));
 
             return $transaksi;
         });
@@ -80,7 +80,7 @@ class WalletService
      * failures, and a wali not one of $santri->walis (none, in practice)
      * just means the loop below sends nothing.
      */
-    private function notifyDebit(Santri $santri, int $nominal, string $jenis, int $saldoAkhir): void
+    private function notifyDebit(Santri $santri, Transaksi $transaksi, int $nominal, string $jenis, int $saldoAkhir): void
     {
         [$title, $keterangan] = match ($jenis) {
             Transaksi::JENIS_PENARIKAN_TUNAI => ['Penarikan Tunai', 'penarikan tunai'],
@@ -97,6 +97,8 @@ class WalletService
             $this->push->notify($wali, $title, $body, [
                 'type' => $jenis,
                 'santri_id' => $santri->id,
+                'santri_nama' => $santri->nama,
+                'transaksi_id' => $transaksi->id,
                 'saldo_akhir' => $saldoAkhir,
             ]);
         }

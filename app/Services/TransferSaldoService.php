@@ -31,7 +31,7 @@ class TransferSaldoService
      * @throws InvalidArgumentException
      * @return array{debit: Transaksi, credit: Transaksi}
      */
-    public function transfer(Santri $dari, Santri $ke, int $nominal, User $diprosesOleh): array
+    public function transfer(Santri $dari, Santri $ke, int $nominal, User $diprosesOleh, ?string $requestId = null): array
     {
         if ($dari->id === $ke->id) {
             throw new InvalidArgumentException('Tidak bisa transfer ke santri yang sama.');
@@ -45,7 +45,7 @@ class TransferSaldoService
             throw new InvalidArgumentException('Santri tujuan sedang tidak aktif.');
         }
 
-        return DB::transaction(function () use ($dari, $ke, $nominal, $diprosesOleh) {
+        return DB::transaction(function () use ($dari, $ke, $nominal, $diprosesOleh, $requestId) {
             // Locked here (same outer transaction) so the floor check reads
             // an up-to-date balance rather than a stale one two concurrent
             // transfers could each individually pass against - same
@@ -55,6 +55,21 @@ class TransferSaldoService
             // which must win (truly not enough money, vs enough but
             // policy-blocked, are different facts the wali needs to see).
             $saldoDari = $this->wallet->lockSaldo($dari);
+
+            if ($requestId !== null) {
+                $debitLama = Transaksi::query()
+                    ->where('idempotency_key', $requestId)
+                    ->where('santri_id', $dari->id)
+                    ->first();
+                $creditLama = Transaksi::query()
+                    ->where('idempotency_key', $requestId.'-credit')
+                    ->where('santri_id', $ke->id)
+                    ->first();
+
+                if ($debitLama && $creditLama) {
+                    return ['debit' => $debitLama, 'credit' => $creditLama];
+                }
+            }
             $minimal = $this->saldoFloor->minimal();
 
             if ($saldoDari->saldo >= $nominal && $saldoDari->saldo - $nominal < $minimal) {
@@ -72,6 +87,7 @@ class TransferSaldoService
                     'diproses_oleh' => $diprosesOleh->id,
                     'referensi_type' => Santri::class,
                     'referensi_id' => $ke->id,
+                    'idempotency_key' => $requestId,
                 ]
             );
 
@@ -83,6 +99,7 @@ class TransferSaldoService
                     'diproses_oleh' => $diprosesOleh->id,
                     'referensi_type' => Santri::class,
                     'referensi_id' => $dari->id,
+                    'idempotency_key' => $requestId ? $requestId.'-credit' : null,
                 ]
             );
 

@@ -38,6 +38,7 @@ class SendTagihanBaruNotifications implements ShouldQueue
                         $push->notify($wali, 'Tagihan Baru', $body, [
                             'type' => 'tagihan_baru',
                             'santri_id' => $santri->id,
+                            'santri_nama' => $santri->nama,
                             'tagihan_id' => $tagihan->id,
                         ]);
                     }

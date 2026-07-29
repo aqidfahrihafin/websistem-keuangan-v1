@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Wali\AuthController;
 use App\Http\Controllers\Api\Wali\BannerController;
 use App\Http\Controllers\Api\Wali\DeviceTokenController;
 use App\Http\Controllers\Api\Wali\KwitansiController;
+use App\Http\Controllers\Api\Wali\NotificationController;
 use App\Http\Controllers\Api\Wali\PinController;
 use App\Http\Controllers\Api\Wali\SaldoController;
 use App\Http\Controllers\Api\Wali\SaudaraController;
@@ -37,6 +38,9 @@ Route::prefix('wali')->name('api.wali.')->group(function () {
     Route::middleware(['auth:sanctum', 'ability:wali'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('/me', [AuthController::class, 'me'])->name('me');
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
         Route::put('/profile', [AuthController::class, 'update'])->name('profile.update');
         Route::post('/password', [AuthController::class, 'password'])->name('password');
 
@@ -48,7 +52,9 @@ Route::prefix('wali')->name('api.wali.')->group(function () {
         Route::get('/anak/{santri}', [AnakController::class, 'show'])->name('anak.show');
         Route::get('/anak/{santri}/saldo', [SaldoController::class, 'show'])->name('anak.saldo');
         Route::get('/anak/{santri}/transaksi', [TransaksiController::class, 'index'])->name('anak.transaksi');
+        Route::get('/anak/{santri}/transaksi/{transaksi}', [TransaksiController::class, 'show'])->name('anak.transaksi.show');
         Route::get('/anak/{santri}/tagihan', [TagihanController::class, 'index'])->name('anak.tagihan.index');
+        Route::get('/anak/{santri}/tagihan/{tagihan}', [TagihanController::class, 'show'])->name('anak.tagihan.show');
         Route::post('/anak/{santri}/tagihan/{tagihan}/bayar', [TagihanController::class, 'bayar'])->name('anak.tagihan.bayar');
         Route::post('/anak/{santri}/tagihan/{tagihan}/topup/core', [TagihanController::class, 'bayarViaMidtrans'])->name('anak.tagihan.topup.store-core');
         Route::post('/anak/{santri}/topup', [TopupController::class, 'store'])->name('anak.topup.store');

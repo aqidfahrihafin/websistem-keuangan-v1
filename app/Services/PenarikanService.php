@@ -114,6 +114,7 @@ class PenarikanService
             $this->push->notify($wali, 'Penarikan Disetujui', $body, [
                 'type' => 'penarikan_disetujui',
                 'santri_id' => $santri->id,
+                'santri_nama' => $santri->nama,
             ]);
         }
     }

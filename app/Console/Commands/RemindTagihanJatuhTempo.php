@@ -34,6 +34,7 @@ class RemindTagihanJatuhTempo extends Command
                         $push->notify($wali, 'Tagihan Segera Jatuh Tempo', $body, [
                             'type' => 'tagihan_jatuh_tempo',
                             'santri_id' => $santri->id,
+                            'santri_nama' => $santri->nama,
                             'tagihan_id' => $tagihan->id,
                         ]);
                     }

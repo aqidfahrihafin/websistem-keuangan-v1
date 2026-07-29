@@ -518,10 +518,18 @@ class TopupWaliService
         $body = "Saldo {$santri->nama} bertambah Rp".number_format($topup->nominal_ke_saldo, 0, ',', '.').'. '
             .'Saldo akhir: Rp'.number_format($saldoAkhir, 0, ',', '.').'.';
 
+        $transaksiId = Transaksi::query()
+            ->where('santri_id', $santri->id)
+            ->where('idempotency_key', $topup->midtrans_order_id)
+            ->value('id');
+
         foreach ($santri->walis as $wali) {
             $this->push->notify($wali, 'Top Up Berhasil', $body, [
                 'type' => 'topup_berhasil',
                 'santri_id' => $santri->id,
+                'santri_nama' => $santri->nama,
+                'topup_id' => $topup->id,
+                'transaksi_id' => $transaksiId,
                 'saldo_akhir' => $saldoAkhir,
             ]);
         }

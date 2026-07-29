@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\WaliDeviceToken;
+use App\Models\WaliNotification;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
@@ -19,6 +20,22 @@ class PushNotificationService
 {
     public function notify(User $user, string $title, string $body, array $data = []): void
     {
+        try {
+            WaliNotification::create([
+                'user_id' => $user->id,
+                'title' => $title,
+                'body' => $body,
+                'type' => (string) ($data['type'] ?? 'info'),
+                'data' => $data,
+            ]);
+        } catch (Throwable $e) {
+            Log::warning('Gagal menyimpan notifikasi wali.', [
+                'user_id' => $user->id,
+                'title' => $title,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         $tokens = $user->deviceTokens()->pluck('fcm_token', 'id');
 
         if ($tokens->isEmpty()) {

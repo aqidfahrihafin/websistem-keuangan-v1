@@ -186,10 +186,25 @@ class TagihanService
      * @throws SaldoDiBawahMinimumException
      * @throws InvalidArgumentException
      */
-    public function bayarDariSaldo(Tagihan $tagihan, User $diprosesOleh, ?int $nominal = null): ?TagihanPembayaran
+    public function bayarDariSaldo(Tagihan $tagihan, User $diprosesOleh, ?int $nominal = null, ?string $requestId = null): ?TagihanPembayaran
     {
-        return DB::transaction(function () use ($tagihan, $diprosesOleh, $nominal) {
+        return DB::transaction(function () use ($tagihan, $diprosesOleh, $nominal, $requestId) {
             $locked = Tagihan::query()->lockForUpdate()->findOrFail($tagihan->id);
+
+            if ($requestId !== null) {
+                $existing = Transaksi::query()
+                    ->where('idempotency_key', $requestId)
+                    ->where('santri_id', $locked->santri_id)
+                    ->where('tagihan_id', $locked->id)
+                    ->first();
+
+                if ($existing) {
+                    return TagihanPembayaran::query()
+                        ->where('transaksi_id', $existing->id)
+                        ->first();
+                }
+            }
+
             $sisa = $locked->sisa();
 
             if ($sisa <= 0) {
@@ -232,6 +247,7 @@ class TagihanService
                 'metode' => Transaksi::METODE_SISTEM,
                 'tagihan_id' => $locked->id,
                 'diproses_oleh' => $diprosesOleh->id,
+                'idempotency_key' => $requestId,
             ]);
 
             return $this->applyPembayaran($locked, $nominalDibayar, TagihanPembayaran::SUMBER_SALDO, [

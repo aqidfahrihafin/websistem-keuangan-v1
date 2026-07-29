@@ -30,6 +30,14 @@ class TagihanController extends WaliApiController
         return TagihanResource::collection($tagihans);
     }
 
+    public function show(Santri $santri, Tagihan $tagihan): TagihanResource
+    {
+        $this->authorizedSantri($santri);
+        abort_unless($tagihan->santri_id === $santri->id, 404);
+
+        return new TagihanResource($tagihan->load('jenisTagihan'));
+    }
+
     public function bayar(Request $request, Santri $santri, Tagihan $tagihan, TagihanService $service, PinService $pinService, SaldoFloorService $saldoFloor): JsonResponse
     {
         $this->authorizedSantri($santri);
@@ -45,12 +53,18 @@ class TagihanController extends WaliApiController
         $data = $request->validate([
             'nominal' => ['nullable', 'integer', 'min:1', 'max:'.$saldoFloor->maksimalNominal()],
             'pin' => ['required', 'digits:6'],
+            'request_id' => ['nullable', 'string', 'max:100'],
         ]);
 
         $this->requirePin($data['pin'], $pinService);
 
         try {
-            $pembayaran = $service->bayarDariSaldo($tagihan, Auth::user(), $data['nominal'] ?? null);
+            $pembayaran = $service->bayarDariSaldo(
+                $tagihan,
+                Auth::user(),
+                $data['nominal'] ?? null,
+                $data['request_id'] ?? null,
+            );
         } catch (SaldoDiBawahMinimumException $e) {
             return response()->json(['message' => $e->getMessage(), 'code' => 'saldo_di_bawah_minimum'], 422);
         } catch (InsufficientBalanceException $e) {

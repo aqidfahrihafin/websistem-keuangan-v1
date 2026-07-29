@@ -52,12 +52,13 @@ class KantinPembayaranService
         int $nominal,
         ?User $diprosesOleh,
         ?Device $device = null,
+        ?string $requestId = null,
     ): Transaksi {
         if ($unitUsaha->status !== UnitUsaha::STATUS_AKTIF) {
             throw new InvalidArgumentException('Kantin ini sedang tidak aktif dan tidak bisa menerima pembayaran.');
         }
 
-        return DB::transaction(function () use ($santri, $unitUsaha, $nominal, $diprosesOleh, $device) {
+        return DB::transaction(function () use ($santri, $unitUsaha, $nominal, $diprosesOleh, $device, $requestId) {
             // Locked here (same outer transaction) so the floor check reads
             // an up-to-date balance - same ordering as TransferSaldoService
             // and TagihanService::bayarDariSaldo(). Only checked when saldo
@@ -66,6 +67,17 @@ class KantinPembayaranService
             // not enough money, vs enough but policy-blocked, are different
             // facts the wali needs to see).
             $saldo = $this->wallet->lockSaldo($santri);
+
+            if ($requestId !== null) {
+                $existing = Transaksi::query()
+                    ->where('idempotency_key', $requestId)
+                    ->where('santri_id', $santri->id)
+                    ->first();
+
+                if ($existing) {
+                    return $existing->load('kwitansi');
+                }
+            }
             $minimal = $this->saldoFloor->minimal();
 
             if ($saldo->saldo >= $nominal && $saldo->saldo - $nominal < $minimal) {
@@ -85,6 +97,7 @@ class KantinPembayaranService
                     'diproses_oleh' => $diprosesOleh?->id,
                     'referensi_type' => UnitUsaha::class,
                     'referensi_id' => $unitUsaha->id,
+                    'idempotency_key' => $requestId,
                     'metadata' => $device ? [
                         'device_id' => $device->id,
                         'kode_device' => $device->kode_device,

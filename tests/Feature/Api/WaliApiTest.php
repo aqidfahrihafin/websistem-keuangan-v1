@@ -9,8 +9,10 @@ use App\Models\TopupWali;
 use App\Models\Transaksi;
 use App\Models\UnitUsaha;
 use App\Models\WaliSantri;
+use App\Models\WaliNotification;
 use App\Services\KantinPembayaranService;
 use App\Services\MidtransFeeService;
+use App\Services\PushNotificationService;
 use App\Services\SaldoFloorService;
 use App\Services\TagihanService;
 use App\Services\TopupWaliService;
@@ -154,6 +156,68 @@ it('lists transaksi history for a linked santri', function () {
         ->assertJsonCount(1, 'data');
 });
 
+it('returns an exact transaction detail for notification deep links', function () {
+    [$wali, $santri] = makeWaliWithAnak();
+    $transaksi = app(WalletService::class)->credit(
+        $santri,
+        10000,
+        Transaksi::JENIS_TOPUP_TUNAI,
+    );
+
+    Sanctum::actingAs($wali, ['wali']);
+
+    $this->getJson("/api/wali/anak/{$santri->id}/transaksi/{$transaksi->id}")
+        ->assertOk()
+        ->assertJsonPath('data.id', $transaksi->id);
+});
+
+it('returns an exact tagihan detail for notification deep links', function () {
+    [$wali, $santri] = makeWaliWithAnak();
+    $jenis = JenisTagihan::factory()->create(['nominal_default' => 100000]);
+    app(TagihanService::class)->generateTagihanForPeriode(
+        $jenis,
+        '2026-07',
+        null,
+        null,
+        null,
+        [$santri->id],
+    );
+    $tagihan = Tagihan::where('santri_id', $santri->id)->firstOrFail();
+
+    Sanctum::actingAs($wali, ['wali']);
+
+    $this->getJson("/api/wali/anak/{$santri->id}/tagihan/{$tagihan->id}")
+        ->assertOk()
+        ->assertJsonPath('data.id', $tagihan->id);
+});
+
+it('forbids notification deep links to another santri transaction or tagihan', function () {
+    [$wali, $santri] = makeWaliWithAnak();
+    $other = Santri::factory()->create();
+    $transaksi = app(WalletService::class)->credit(
+        $other,
+        10000,
+        Transaksi::JENIS_TOPUP_TUNAI,
+    );
+    $jenis = JenisTagihan::factory()->create(['nominal_default' => 100000]);
+    app(TagihanService::class)->generateTagihanForPeriode(
+        $jenis,
+        '2026-07',
+        null,
+        null,
+        null,
+        [$other->id],
+    );
+    $tagihan = Tagihan::where('santri_id', $other->id)->firstOrFail();
+
+    Sanctum::actingAs($wali, ['wali']);
+
+    $this->getJson("/api/wali/anak/{$santri->id}/transaksi/{$transaksi->id}")
+        ->assertNotFound();
+    $this->getJson("/api/wali/anak/{$santri->id}/tagihan/{$tagihan->id}")
+        ->assertNotFound();
+});
+
 it('includes tagihan cicilan info on a transaksi still sebagian, and null when unrelated to any tagihan', function () {
     [$wali, $santri] = makeWaliWithAnak();
     app(WalletService::class)->credit($santri, 200000, Transaksi::JENIS_TOPUP_TUNAI);
@@ -250,6 +314,37 @@ it('pays a tagihan partially from saldo via the API when the jenis tagihan allow
         ->and($santri->saldo->fresh()->saldo)->toBe(160000);
 });
 
+it('does not debit a tagihan twice when the same request id is retried', function () {
+    [$wali, $santri] = makeWaliWithAnak();
+    app(WalletService::class)->credit($santri, 300000, Transaksi::JENIS_TOPUP_TUNAI);
+    $jenis = JenisTagihan::factory()->create([
+        'nominal_default' => 100000,
+        'bisa_dicicil' => true,
+    ]);
+    app(TagihanService::class)->generateTagihanForPeriode(
+        $jenis,
+        '2026-07',
+        null,
+        null,
+        null,
+        [$santri->id],
+    );
+    $tagihan = Tagihan::where('santri_id', $santri->id)->firstOrFail();
+
+    Sanctum::actingAs($wali, ['wali']);
+    $payload = [
+        'nominal' => 50000,
+        'pin' => '135790',
+        'request_id' => 'tagihan-retry-test',
+    ];
+
+    $this->postJson("/api/wali/anak/{$santri->id}/tagihan/{$tagihan->id}/bayar", $payload)->assertOk();
+    $this->postJson("/api/wali/anak/{$santri->id}/tagihan/{$tagihan->id}/bayar", $payload)->assertOk();
+
+    expect($tagihan->fresh()->nominal_terbayar)->toBe(50000)
+        ->and($santri->saldo->fresh()->saldo)->toBe(250000);
+});
+
 it('rejects a partial nominal via the API for a jenis tagihan that does not allow cicilan', function () {
     [$wali, $santri] = makeWaliWithAnak();
     app(WalletService::class)->credit($santri, 200000, Transaksi::JENIS_TOPUP_TUNAI);
@@ -262,9 +357,37 @@ it('rejects a partial nominal via the API for a jenis tagihan that does not allo
 
     $this->postJson("/api/wali/anak/{$santri->id}/tagihan/{$tagihan->id}/bayar", ['nominal' => 40000, 'pin' => '135790'])
         ->assertStatus(422)
-        ->assertJsonPath('code', 'nominal_tidak_valid');
+        ->assertJsonPath('code', 'nominal_tidak_valid')
+        ->assertJsonPath('message', 'Tagihan ini tidak bisa dicicil dan harus dibayar penuh sekaligus.');
 
     expect($tagihan->fresh()->status)->toBe(Tagihan::STATUS_BELUM_LUNAS);
+});
+
+it('returns a visible error message when a cicilan payment uses the wrong PIN', function () {
+    [$wali, $santri] = makeWaliWithAnak();
+    app(WalletService::class)->credit($santri, 200000, Transaksi::JENIS_TOPUP_TUNAI);
+
+    $jenis = JenisTagihan::factory()->create([
+        'nominal_default' => 100000,
+        'bisa_dicicil' => true,
+    ]);
+    app(TagihanService::class)->generateTagihanForPeriode(
+        $jenis,
+        '2026-07',
+        null,
+        null,
+        null,
+        [$santri->id],
+    );
+    $tagihan = Tagihan::where('santri_id', $santri->id)->firstOrFail();
+
+    Sanctum::actingAs($wali, ['wali']);
+
+    $this->postJson("/api/wali/anak/{$santri->id}/tagihan/{$tagihan->id}/bayar", [
+        'nominal' => 40000,
+        'pin' => '000000',
+    ])->assertUnprocessable()
+        ->assertJsonPath('message', 'PIN salah.');
 });
 
 it('rejects paying a tagihan that does not belong to the given santri', function () {
@@ -508,4 +631,83 @@ it('rejects a wali-scoped token from calling kiosk endpoints', function () {
     Sanctum::actingAs($wali, ['wali']);
 
     $this->postJson('/api/kiosk/device/heartbeat')->assertStatus(403);
+});
+
+it('lists wali notifications and reports the unread count', function () {
+    [$wali] = makeWaliWithAnak();
+
+    WaliNotification::create([
+        'user_id' => $wali->id,
+        'title' => 'Tagihan Baru',
+        'body' => 'Tagihan syahriah telah diterbitkan.',
+        'type' => 'tagihan_baru',
+        'data' => ['tagihan_id' => 123],
+    ]);
+    WaliNotification::create([
+        'user_id' => $wali->id,
+        'title' => 'Top Up Berhasil',
+        'body' => 'Saldo sudah masuk.',
+        'type' => 'topup_berhasil',
+        'read_at' => now(),
+    ]);
+
+    Sanctum::actingAs($wali, ['wali']);
+
+    $this->getJson('/api/wali/notifications')
+        ->assertOk()
+        ->assertJsonPath('unread_count', 1)
+        ->assertJsonCount(2, 'data')
+        ->assertJsonFragment([
+            'type' => 'tagihan_baru',
+            'tagihan_id' => 123,
+        ]);
+});
+
+it('marks one or all wali notifications as read without exposing another account', function () {
+    [$wali] = makeWaliWithAnak();
+    $otherWali = makeUserWithRole('wali', ['email' => 'wali-other@test.com']);
+
+    $first = WaliNotification::create([
+        'user_id' => $wali->id,
+        'title' => 'Pertama',
+        'body' => 'Pesan pertama.',
+    ]);
+    $second = WaliNotification::create([
+        'user_id' => $wali->id,
+        'title' => 'Kedua',
+        'body' => 'Pesan kedua.',
+    ]);
+    $foreign = WaliNotification::create([
+        'user_id' => $otherWali->id,
+        'title' => 'Milik akun lain',
+        'body' => 'Tidak boleh terlihat.',
+    ]);
+
+    Sanctum::actingAs($wali, ['wali']);
+
+    $this->postJson("/api/wali/notifications/{$first->id}/read")->assertOk();
+    expect($first->fresh()->read_at)->not->toBeNull()
+        ->and($second->fresh()->read_at)->toBeNull();
+
+    $this->postJson("/api/wali/notifications/{$foreign->id}/read")->assertNotFound();
+    $this->postJson('/api/wali/notifications/read-all')->assertOk();
+
+    expect($second->fresh()->read_at)->not->toBeNull()
+        ->and($foreign->fresh()->read_at)->toBeNull();
+});
+
+it('stores a notification inbox item even when the wali has no FCM token', function () {
+    [$wali] = makeWaliWithAnak();
+
+    app(PushNotificationService::class)->notify(
+        $wali,
+        'Pembayaran Berhasil',
+        'Cicilan tagihan berhasil dibayar.',
+        ['type' => 'tagihan_dibayar', 'tagihan_id' => '10'],
+    );
+
+    expect(WaliNotification::query()
+        ->whereBelongsTo($wali)
+        ->where('type', 'tagihan_dibayar')
+        ->exists())->toBeTrue();
 });

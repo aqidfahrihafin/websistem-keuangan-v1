@@ -347,6 +347,33 @@ Endpoint ini mengambil status **langsung dari Midtrans** (bukan dari database lo
 
 Response sama seperti `GET /topup/{topup}`.
 
+## Pusat Notifikasi & Deep Link
+
+Pusat notifikasi bersifat **per akun wali**, bukan per santri yang sedang dipilih. Karena satu wali dapat memiliki beberapa santri dalam satu KK, `GET /api/wali/notifications` menggabungkan notifikasi seluruh santri yang berada di bawah akun tersebut. Gunakan field `santri_nama` untuk menunjukkan pemilik aktivitas pada setiap item.
+
+Setiap notifikasi baru disimpan ke tabel `wali_notifications` walaupun wali sedang offline atau belum memiliki token FCM. Push Firebase hanya menjadi kanal pengantar; daftar di ikon lonceng tetap mengambil data persisten dari API.
+
+Aturan navigasi ketika notifikasi di aplikasi atau push diketuk:
+
+- Notifikasi transaksi membawa `santri_id` dan `transaksi_id`, lalu membuka `GET /api/wali/anak/{santri}/transaksi/{transaksi}`.
+- Notifikasi tagihan membawa `santri_id` dan `tagihan_id`, lalu membuka `GET /api/wali/anak/{santri}/tagihan/{tagihan}`.
+- Jenis lain yang belum mempunyai halaman objek khusus membuka halaman Detail Notifikasi.
+- Backend selalu memeriksa bahwa santri, transaksi, tagihan, dan notifikasi benar-benar dimiliki akun wali yang sedang login.
+
+## Mitigasi Transaksi pada Jaringan Lambat
+
+Endpoint bayar tagihan, transfer antar santri, dan bayar kantin menerima `request_id` opsional dengan panjang maksimal 100 karakter. Aplikasi harus membuat satu nilai unik saat proses dimulai dan **memakai nilai yang sama untuk retry proses tersebut**. Backend menyimpannya sebagai `transaksis.idempotency_key`; request ulang mengembalikan transaksi pertama tanpa mendebit saldo lagi.
+
+Pedoman aplikasi:
+
+1. Kunci tombol dan tampilkan dialog proses yang tidak bisa ditutup selama request mutasi saldo berlangsung.
+2. Jangan menganggap timeout sebagai gagal. Respons dapat terlambat setelah transaksi berhasil dicatat server.
+3. Setelah timeout pembayaran tagihan, ambil detail tagihan yang sama. Untuk transfer atau kantin, cari transaksi terkait di riwayat terbaru.
+4. Jika perubahan sudah ditemukan, tampilkan bahwa transaksi berhasil dikonfirmasi. Jika belum dapat dipastikan, minta pengguna memeriksa status/riwayat dan jangan langsung mengulang.
+5. Untuk top up Midtrans, polling status lalu gunakan endpoint sinkronisasi manual jika webhook terlambat.
+
+Respons `401` berarti sesi API telah habis atau token tidak valid. Mobile membersihkan sesi lokal dan mengarahkan ke login dengan penjelasan bahwa pengguna keluar karena sesi berakhir. Penguncian PIN akibat aplikasi tidak aktif berbeda dari sesi API habis: sesi tetap ada dan layar PIN menampilkan alasan penguncian.
+
 ## Ringkasan Endpoint
 
 | Method | Path | Keterangan |
@@ -358,8 +385,13 @@ Response sama seperti `GET /topup/{topup}`.
 | GET | `/api/wali/anak/{santri}` | Detail satu anak |
 | GET | `/api/wali/anak/{santri}/saldo` | Saldo anak |
 | GET | `/api/wali/anak/{santri}/transaksi` | Riwayat transaksi (paginated) |
+| GET | `/api/wali/anak/{santri}/transaksi/{transaksi}` | Detail transaksi untuk deep link notifikasi |
 | GET | `/api/wali/anak/{santri}/tagihan` | List tagihan |
+| GET | `/api/wali/anak/{santri}/tagihan/{tagihan}` | Detail tagihan untuk deep link notifikasi |
 | POST | `/api/wali/anak/{santri}/tagihan/{tagihan}/bayar` | Bayar tagihan dari saldo |
+| GET | `/api/wali/notifications` | Maksimal 100 notifikasi terbaru + jumlah belum dibaca |
+| POST | `/api/wali/notifications/{notification}/read` | Tandai satu notifikasi milik wali sebagai dibaca |
+| POST | `/api/wali/notifications/read-all` | Tandai semua notifikasi wali sebagai dibaca |
 | POST | `/api/wali/anak/{santri}/topup` | Mulai top up via Midtrans Snap |
 | GET | `/api/wali/topup/{topup}` | Cek status top up |
 | POST | `/api/wali/topup/{topup}/sync` | Sinkronkan status manual langsung dari Midtrans |
@@ -367,6 +399,7 @@ Response sama seperti `GET /topup/{topup}`.
 ## Catatan Versi & Batasan Saat Ini
 
 - Semua nominal uang dalam **Rupiah bulat** (integer, tanpa desimal).
-- Belum ada endpoint untuk push notification saat tagihan baru terbit atau top up selesai — saat ini aplikasi mobile perlu polling. Ini masuk rencana Fase 2.
+- Endpoint mutasi saldo (`bayar` tagihan, transfer antar santri, dan bayar kantin) menerima `request_id` opsional maksimal 100 karakter. Mobile mengirim nilai yang stabil selama lima menit; pengiriman ulang dengan `request_id` yang sama mengembalikan transaksi pertama dan tidak mendebit saldo dua kali. Jika respons timeout, mobile terlebih dahulu merekonsiliasi detail tagihan/riwayat transaksi dan melarang pengguna mengulang sebelum status dapat dipastikan.
+- Push Firebase dan pusat notifikasi persisten sudah aktif. Pesan baru disimpan di `wali_notifications`, sehingga tetap tersedia walaupun perangkat offline atau tidak memiliki token FCM. Data lama sebelum migrasi tabel ini tidak di-backfill.
 - Belum ada endpoint self-registration/lupa password untuk wali — reset password saat ini hanya lewat admin pondok.
 - Kredensial Midtrans (server key / client key) diatur oleh admin lewat panel web (`/admin/pengaturan/midtrans`), bisa sandbox atau produksi. Jika `POST /topup` mengembalikan 422 "Midtrans belum dikonfigurasi", hubungi admin pondok.
