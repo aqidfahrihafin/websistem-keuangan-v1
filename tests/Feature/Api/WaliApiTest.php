@@ -253,7 +253,14 @@ it('resolves the counterparty (referensi) for kantin payments and transfers, and
     $keluarga = Keluarga::factory()->create();
     $santri->update(['keluarga_id' => $keluarga->id]);
     $adik = Santri::factory()->create(['keluarga_id' => $keluarga->id, 'nama' => 'Adik Santri']);
-    app(TransferSaldoService::class)->transfer($santri, $adik, 20000, $wali);
+    WaliSantri::create([
+        'user_id' => $wali->id,
+        'santri_id' => $adik->id,
+        'hubungan' => 'wali',
+        'is_auto_generated' => false,
+        'is_primary' => false,
+    ]);
+    $transferRows = app(TransferSaldoService::class)->transfer($santri, $adik, 20000, $wali);
 
     Sanctum::actingAs($wali, ['wali']);
 
@@ -264,6 +271,16 @@ it('resolves the counterparty (referensi) for kantin payments and transfers, and
 
     $transfer = collect($data)->firstWhere('jenis', 'transfer_antar_santri');
     expect($transfer['referensi'])->toBe(['type' => 'santri', 'nama' => 'Adik Santri', 'nis' => $adik->nis]);
+    expect($transfer['santri']['id'])->toBe($santri->id)
+        ->and($transfer['santri']['nama'])->toBe($santri->nama);
+
+    $credit = $this->getJson("/api/wali/anak/{$adik->id}/transaksi/{$transferRows['credit']->id}")
+        ->assertOk()
+        ->json('data');
+    expect($credit['arah'])->toBe(Transaksi::ARAH_KREDIT)
+        ->and($credit['santri']['id'])->toBe($adik->id)
+        ->and($credit['santri']['nama'])->toBe('Adik Santri')
+        ->and($credit['referensi']['nama'])->toBe($santri->nama);
 
     $topup = collect($data)->firstWhere('jenis', 'topup_tunai');
     expect($topup['referensi'])->toBeNull();

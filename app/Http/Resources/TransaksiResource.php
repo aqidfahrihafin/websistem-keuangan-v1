@@ -42,6 +42,16 @@ class TransaksiResource extends JsonResource
                 : null,
             'catatan' => $this->catatan,
             'created_at' => $this->created_at?->toIso8601String(),
+            // The ledger owner must travel with the transaction. A wali can
+            // open a notification for child A while child B is selected in
+            // the app; deriving "self" from the active-child UI state would
+            // then render B as both sender and recipient.
+            'santri' => $this->santri ? [
+                'id' => $this->santri->id,
+                'nama' => $this->santri->nama,
+                'nis' => $this->santri->nis,
+                'lembaga' => $this->santri->lembaga,
+            ] : null,
             // Present only once this transaksi's kwitansi resmi has been
             // issued (pembayaran_tagihan from saldo, and pembayaran_kantin -
             // see KwitansiService) - the mobile app uses this id to fetch a

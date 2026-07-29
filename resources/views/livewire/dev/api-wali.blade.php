@@ -896,6 +896,8 @@ Accept: application/json</code></pre>
     <li>Backend selalu memastikan santri, transaksi, tagihan, dan notifikasi benar-benar dimiliki akun wali yang sedang login.</li>
 </ul>
 
+<p>Respons transaksi menyertakan objek <code>santri</code> sebagai pemilik baris ledger. Detail transfer wajib memakai objek ini &mdash; bukan santri yang sedang aktif di UI &mdash; untuk menentukan pihak pengirim/penerima. Deep link push disimpan sebagai tujuan tertunda ketika aplikasi masih memulihkan sesi, berada di layar login, atau terkunci PIN/biometrik; tujuan baru dibuka setelah autentikasi selesai.</p>
+
 <h2>Mitigasi Transaksi pada Jaringan Lambat</h2>
 
 <p>Endpoint bayar tagihan, transfer antar santri, dan bayar kantin menerima <code>request_id</code> opsional maksimal 100 karakter. Aplikasi membuat satu nilai unik saat proses dimulai dan <strong>memakai nilai yang sama saat retry proses tersebut</strong>. Backend menyimpannya sebagai <code>transaksis.idempotency_key</code>; request ulang mengembalikan transaksi pertama tanpa mendebit saldo lagi.</p>

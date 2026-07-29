@@ -360,6 +360,8 @@ Aturan navigasi ketika notifikasi di aplikasi atau push diketuk:
 - Jenis lain yang belum mempunyai halaman objek khusus membuka halaman Detail Notifikasi.
 - Backend selalu memeriksa bahwa santri, transaksi, tagihan, dan notifikasi benar-benar dimiliki akun wali yang sedang login.
 
+Respons transaksi menyertakan objek `santri` sebagai pemilik baris ledger. Detail transfer wajib memakai objek ini—bukan santri yang sedang aktif di UI—untuk menentukan pihak pengirim/penerima. Deep link push disimpan sebagai tujuan tertunda ketika aplikasi masih memulihkan sesi, berada di layar login, atau terkunci PIN/biometrik; tujuan baru dibuka setelah autentikasi selesai.
+
 ## Mitigasi Transaksi pada Jaringan Lambat
 
 Endpoint bayar tagihan, transfer antar santri, dan bayar kantin menerima `request_id` opsional dengan panjang maksimal 100 karakter. Aplikasi harus membuat satu nilai unik saat proses dimulai dan **memakai nilai yang sama untuk retry proses tersebut**. Backend menyimpannya sebagai `transaksis.idempotency_key`; request ulang mengembalikan transaksi pertama tanpa mendebit saldo lagi.
