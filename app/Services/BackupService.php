@@ -49,7 +49,10 @@ class BackupService
                     'nama' => $nama,
                     'ukuran' => $disk->size($path),
                     'ukuran_label' => $this->formatUkuran($disk->size($path)),
-                    'dibuat_at' => Carbon::createFromTimestamp($disk->lastModified($path)),
+                    'dibuat_at' => Carbon::createFromTimestamp(
+                        $disk->lastModified($path),
+                        config('app.timezone'),
+                    ),
                     'kompatibilitas' => $this->inspeksi($nama),
                 ];
             })

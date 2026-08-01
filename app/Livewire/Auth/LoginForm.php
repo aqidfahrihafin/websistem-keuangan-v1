@@ -92,6 +92,7 @@ class LoginForm extends Component
 
         session()->regenerate();
         session()->put('auth.login.attempted', true);
+        session()->put('maintenance.admin_recovery', $maintenance->active());
 
         if (request()->isSecure()) {
             config(['session.secure' => true]);

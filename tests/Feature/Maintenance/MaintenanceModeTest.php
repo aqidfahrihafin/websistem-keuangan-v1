@@ -44,7 +44,7 @@ it('blocks web and api users while preserving structured maintenance details', f
     $this->actingAs($wali)
         ->get('/wali')
         ->assertStatus(503)
-        ->assertSee('Kami segera kembali');
+        ->assertSee('Layanan sedang kami siapkan kembali');
 
     $this->actingAs($wali)
         ->getJson('/api/wali/app-info')
@@ -126,4 +126,5 @@ it('keeps login open for admin recovery and rejects non admin sessions', functio
         ->call('submit')
         ->assertRedirect(route('admin.pengaturan.maintenance'));
     $this->assertAuthenticatedAs($admin);
+    $this->assertTrue(session('maintenance.admin_recovery'));
 });

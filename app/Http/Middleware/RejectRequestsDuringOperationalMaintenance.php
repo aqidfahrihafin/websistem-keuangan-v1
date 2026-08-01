@@ -47,6 +47,19 @@ class RejectRequestsDuringOperationalMaintenance
             return true;
         }
 
+        // Set only after a successful admin login while maintenance is
+        // active. This remains reliable on hosting even when the role
+        // resolver is not yet warm for the first redirected request.
+        $recoverySession = $request->hasSession()
+            && $request->session()->get('maintenance.admin_recovery') === true;
+        if ($recoverySession && $request->is('admin/pengaturan/maintenance')) {
+            return true;
+        }
+
+        if ($recoverySession && $request->is('livewire/update') && $this->isLivewireComponent($request, 'admin.pengaturan.maintenance')) {
+            return true;
+        }
+
         if ($request->user()?->hasRole('admin') !== true) {
             return false;
         }

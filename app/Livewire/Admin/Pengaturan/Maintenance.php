@@ -65,6 +65,7 @@ class Maintenance extends Component
     {
         $this->reset(['successMessage', 'errorMessage']);
         $maintenance->deactivate(auth()->user());
+        session()->forget('maintenance.admin_recovery');
         $this->confirmation = '';
         $this->successMessage = 'Maintenance dinonaktifkan. Akses pengguna dan pemrosesan terjadwal kembali dibuka.';
     }

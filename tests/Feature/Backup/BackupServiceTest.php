@@ -68,6 +68,7 @@ it('lists backup zip files sorted newest first with a formatted size', function 
 
     expect($daftar)->toHaveCount(2)
         ->and($daftar[0]['nama'])->toBe('new.zip')
+        ->and($daftar[0]['dibuat_at']->timezoneName)->toBe(config('app.timezone'))
         ->and($daftar[1]['nama'])->toBe('old.zip')
         ->and($daftar[1]['ukuran_label'])->toBe('2.0 KB');
 });
