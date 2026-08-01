@@ -64,7 +64,9 @@ it('keeps authenticated administrators as the audited recovery path', function (
     $this->actingAs($admin)
         ->get('/admin/pengaturan/maintenance')
         ->assertOk()
-        ->assertSee('Maintenance sedang aktif');
+        ->assertSee('Maintenance sedang aktif')
+        ->assertSee('Buka kembali seluruh layanan?')
+        ->assertSee(route('maintenance.end'));
 
     $this->actingAs($admin)
         ->get('/admin/transaksi')

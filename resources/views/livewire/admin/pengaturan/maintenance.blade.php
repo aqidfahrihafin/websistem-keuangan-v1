@@ -1,4 +1,7 @@
 <div class="content-stack">
+    <style>
+        #end-maintenance-dialog::backdrop { background: rgba(15, 23, 42, .48); backdrop-filter: blur(3px); }
+    </style>
     @if ($successMessage)
         <x-alert-banner type="success" :message="$successMessage" />
     @endif
@@ -32,21 +35,41 @@
             <p class="mt-1 text-sm text-slate-500">Backup pengaman wajib berhasil sebelum sistem dikunci.</p>
 
             @if ($status['enabled'])
-                <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                    <p class="font-semibold">Pesan untuk pengguna</p>
-                    <p class="mt-1">{{ $status['message'] }}</p>
+                <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+                    <div class="flex items-center gap-2">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 font-bold">!</span>
+                        <p class="font-semibold">Pesan yang sedang dilihat pengguna</p>
+                    </div>
+                    <p class="mt-2 leading-6">{{ $status['message'] }}</p>
                     <p class="mt-3 text-xs text-amber-800">
                         Dimulai {{ $status['started_at']?->translatedFormat('d M Y H:i') ?? '-' }}
                         @if ($status['expected_end_at']) &middot; Perkiraan selesai {{ $status['expected_end_at']->translatedFormat('d M Y H:i') }} @endif
                         @if ($status['activated_by']) &middot; Oleh {{ $status['activated_by'] }} @endif
                     </p>
                 </div>
-                <div class="mt-5 flex justify-end">
-                    <form method="POST" action="{{ route('maintenance.end') }}">
-                        @csrf
-                        <button type="submit" class="btn-primary">Akhiri Maintenance</button>
-                    </form>
+                <div class="mt-5 flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p class="font-semibold text-slate-900">Pemeriksaan sudah selesai?</p>
+                        <p class="mt-0.5 text-xs text-slate-500">Akses transaksi akan langsung dibuka untuk seluruh pengguna.</p>
+                    </div>
+                    <button type="button" onclick="document.getElementById('end-maintenance-dialog').showModal()" class="btn-primary shrink-0">Akhiri Maintenance</button>
                 </div>
+
+                <dialog id="end-maintenance-dialog" style="width:calc(100% - 2rem);max-width:28rem" class="rounded-2xl border-0 bg-white p-0 shadow-2xl">
+                    <div class="p-6">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-xl font-bold text-amber-700">!</div>
+                        <h3 class="mt-5 text-xl font-semibold text-slate-900">Buka kembali seluruh layanan?</h3>
+                        <p class="mt-2 text-sm leading-6 text-slate-600">Pastikan migration, database, queue, dan fungsi transaksi utama sudah diperiksa. Setelah dilanjutkan, wali dan petugas dapat kembali bertransaksi.</p>
+                        <div class="mt-4 rounded-xl bg-slate-50 p-4 text-xs leading-5 text-slate-600">Maintenance akan dinonaktifkan dan tindakan ini dicatat dalam audit log.</div>
+                        <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                            <button type="button" onclick="document.getElementById('end-maintenance-dialog').close()" class="btn-secondary">Batal</button>
+                            <form method="POST" action="{{ route('maintenance.end') }}">
+                                @csrf
+                                <button type="submit" class="btn-primary w-full">Ya, Buka Layanan</button>
+                            </form>
+                        </div>
+                    </div>
+                </dialog>
             @else
                 <form wire:submit="activate" class="mt-5 space-y-5">
                     <x-form-field label="Pesan untuk pengguna" required :error="$errors->first('message')">
