@@ -5,6 +5,23 @@ use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
     Cache::forget('system.maintenance.status');
+    Cache::forget('system.maintenance.status.v2');
+});
+
+it('stores only scalar dates in cache for shared hosting compatibility', function () {
+    $admin = makeUserWithRole('admin', ['must_change_password' => false]);
+    app(MaintenanceModeService::class)->activate(
+        'Pemeliharaan keamanan sistem sedang berlangsung.',
+        now()->addHour(),
+        $admin,
+    );
+
+    $status = app(MaintenanceModeService::class)->status();
+    $cached = Cache::get('system.maintenance.status.v2');
+
+    expect($status['started_at'])->toBeInstanceOf(\Illuminate\Support\Carbon::class)
+        ->and($cached['started_at'])->toBeString()
+        ->and($cached['expected_end_at'])->toBeString();
 });
 
 it('publishes a lightweight system status for the mobile app', function () {
