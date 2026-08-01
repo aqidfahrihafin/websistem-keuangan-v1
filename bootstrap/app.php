@@ -21,7 +21,6 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(SecurityHeaders::class);
-        $middleware->append(RejectRequestsDuringOperationalMaintenance::class);
 
         $middleware->alias([
             'role' => RoleMiddleware::class,
@@ -36,6 +35,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             EnsurePasswordIsChanged::class,
+            RejectRequestsDuringOperationalMaintenance::class,
+        ]);
+
+        $middleware->api(append: [
+            RejectRequestsDuringOperationalMaintenance::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
