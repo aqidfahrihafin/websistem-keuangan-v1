@@ -3,6 +3,7 @@
 namespace App\Livewire\Auth;
 
 use App\Models\User;
+use App\Services\MaintenanceModeService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -22,7 +23,7 @@ class LoginForm extends Component
 
     private const DECAY_SECONDS = 60;
 
-    public function submit(): void
+    public function submit(MaintenanceModeService $maintenance): void
     {
         $this->validate([
             'login' => ['required', 'string'],
@@ -76,6 +77,16 @@ class LoginForm extends Component
             return;
         }
 
+        if ($maintenance->active() && ! Auth::user()->hasRole('admin')) {
+            Auth::logout();
+            session()->invalidate();
+            session()->regenerateToken();
+            RateLimiter::clear($throttleKey);
+            $this->addError('login', 'Sistem sedang dalam maintenance. Hanya admin pemulihan yang dapat masuk.');
+
+            return;
+        }
+
         RateLimiter::clear($throttleKey);
         activity('auth')->causedBy(Auth::user())->withProperties(['ip' => request()->ip(), 'guard' => 'web'])->log('Login berhasil');
 
@@ -86,7 +97,11 @@ class LoginForm extends Component
             config(['session.secure' => true]);
         }
 
-        $this->redirect(route('dashboard'), navigate: false);
+        $destination = $maintenance->active()
+            ? route('admin.pengaturan.maintenance')
+            : route('dashboard');
+
+        $this->redirect($destination, navigate: false);
     }
 
     public function render()

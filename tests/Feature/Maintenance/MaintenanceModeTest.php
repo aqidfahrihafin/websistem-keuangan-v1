@@ -2,6 +2,7 @@
 
 use App\Services\MaintenanceModeService;
 use Illuminate\Support\Facades\Cache;
+use Livewire\Livewire;
 
 beforeEach(function () {
     Cache::forget('system.maintenance.status');
@@ -91,4 +92,38 @@ it('always leaves the mobile status endpoint reachable during maintenance', func
         ->assertOk()
         ->assertJsonPath('data.maintenance', true)
         ->assertJsonPath('data.message', 'Pemeliharaan keamanan sistem sedang berlangsung.');
+});
+
+it('keeps login open for admin recovery and rejects non admin sessions', function () {
+    $admin = makeUserWithRole('admin', [
+        'email' => 'recovery-admin@example.test',
+        'password' => bcrypt('secret-password'),
+        'must_change_password' => false,
+    ]);
+    $wali = makeUserWithRole('wali', [
+        'email' => 'blocked-wali@example.test',
+        'password' => bcrypt('secret-password'),
+        'must_change_password' => false,
+    ]);
+    app(MaintenanceModeService::class)->activate(
+        'Pemeliharaan keamanan sistem sedang berlangsung.',
+        null,
+        $admin,
+    );
+
+    $this->get('/login')->assertOk();
+
+    Livewire::test('auth.login-form')
+        ->set('login', $wali->email)
+        ->set('password', 'secret-password')
+        ->call('submit')
+        ->assertHasErrors('login');
+    $this->assertGuest();
+
+    Livewire::test('auth.login-form')
+        ->set('login', $admin->email)
+        ->set('password', 'secret-password')
+        ->call('submit')
+        ->assertRedirect(route('admin.pengaturan.maintenance'));
+    $this->assertAuthenticatedAs($admin);
 });

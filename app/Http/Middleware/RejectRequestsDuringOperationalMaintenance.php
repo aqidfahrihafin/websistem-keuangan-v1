@@ -36,6 +36,17 @@ class RejectRequestsDuringOperationalMaintenance
             return true;
         }
 
+        // Login stays reachable as a recovery entrance. LoginForm itself
+        // only retains an authenticated session for the admin role while
+        // maintenance is active.
+        if ($request->is('login')) {
+            return true;
+        }
+
+        if ($request->is('livewire/update') && $this->isLivewireComponent($request, 'auth.login-form')) {
+            return true;
+        }
+
         if ($request->user()?->hasRole('admin') !== true) {
             return false;
         }
@@ -47,12 +58,19 @@ class RejectRequestsDuringOperationalMaintenance
         // Livewire actions use a shared /livewire/update endpoint. Inspect
         // the signed component snapshot so only the maintenance controller,
         // not other admin financial screens, remains operable.
-        if ($request->is('livewire/update')) {
-            foreach ((array) $request->input('components', []) as $component) {
-                $snapshot = json_decode((string) ($component['snapshot'] ?? ''), true);
-                if (($snapshot['memo']['name'] ?? null) === 'admin.pengaturan.maintenance') {
-                    return true;
-                }
+        if ($request->is('livewire/update') && $this->isLivewireComponent($request, 'admin.pengaturan.maintenance')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function isLivewireComponent(Request $request, string $name): bool
+    {
+        foreach ((array) $request->input('components', []) as $component) {
+            $snapshot = json_decode((string) ($component['snapshot'] ?? ''), true);
+            if (($snapshot['memo']['name'] ?? null) === $name) {
+                return true;
             }
         }
 
