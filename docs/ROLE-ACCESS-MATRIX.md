@@ -29,3 +29,23 @@ di route dan, untuk komponen sensitif Livewire, di lifecycle komponen.
   merupakan kontrol yang berbeda untuk perubahan Midtrans.
 - Jangan memberikan satu akun kepada beberapa orang. Setiap tindakan sensitif
   harus dapat ditelusuri ke pengguna individual.
+
+## Membuat atau memastikan akun superadmin
+
+Isi kredensial di `.env` dan jangan commit nilainya:
+
+```dotenv
+SUPERADMIN_NAME="Nama Pemilik Sistem"
+SUPERADMIN_EMAIL="pemilik@example.com"
+SUPERADMIN_PASSWORD="gunakan-kata-sandi-kuat-minimal-12-karakter"
+```
+
+Kemudian jalankan:
+
+```bash
+php artisan config:clear
+php artisan db:seed --class=Database\\Seeders\\SuperadminSeeder --force
+```
+
+Seeder aman dijalankan ulang. Jika email sudah ada, kata sandi dan data profil
+yang ada tidak ditimpa; role `superadmin` dan `admin` hanya dipastikan terpasang.
