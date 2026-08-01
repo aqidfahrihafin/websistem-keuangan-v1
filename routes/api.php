@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Kiosk\CekSaldoController;
+use App\Http\Controllers\Api\SystemStatusController;
 use App\Http\Controllers\Api\Kiosk\HeartbeatController;
 use App\Http\Controllers\Api\Kiosk\VerifikasiFingerprintController;
 use App\Http\Controllers\Api\Wali\AnakController;
@@ -20,6 +21,10 @@ use App\Http\Controllers\Api\Wali\TransaksiController;
 use App\Http\Controllers\Api\Wali\TransferController;
 use App\Http\Controllers\Api\Wali\UnitUsahaController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/system/status', SystemStatusController::class)
+    ->name('api.system.status')
+    ->middleware('throttle:public-api');
 
 Route::middleware(['auth:sanctum', 'ability:kiosk', 'throttle:api'])->prefix('kiosk')->name('api.kiosk.')->group(function () {
     Route::post('/cek-saldo', CekSaldoController::class)->name('cek-saldo');

@@ -131,6 +131,7 @@
                 'label' => 'Konfigurasi',
                 'items' => [
                     ['route' => 'admin.pengaturan.aplikasi', 'match' => 'admin.pengaturan.aplikasi', 'label' => 'Pengaturan Aplikasi', 'icon' => 'adjustments'],
+                    ['route' => 'admin.pengaturan.maintenance', 'match' => 'admin.pengaturan.maintenance', 'label' => 'Maintenance', 'icon' => 'shield'],
                     ['route' => 'admin.pengaturan.midtrans', 'match' => 'admin.pengaturan.midtrans', 'label' => 'Pengaturan Midtrans', 'icon' => 'credit-card'],
                     ['route' => 'admin.backup.index', 'match' => 'admin.backup.*', 'label' => 'Backup & Restore', 'icon' => 'archive'],
                 ],

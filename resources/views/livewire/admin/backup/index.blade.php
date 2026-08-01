@@ -7,32 +7,32 @@
     @endif
 
     <section class="card overflow-hidden">
-        <div class="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Backup Health Center</p>
-                <h2 class="mt-1 text-lg font-semibold text-slate-900">Kondisi perlindungan data</h2>
+                <h2 class="mt-0.5 text-lg font-semibold text-slate-900">Kondisi perlindungan data</h2>
             </div>
             <span class="badge {{ $health['level'] === 'healthy' ? 'bg-emerald-100 text-emerald-700' : ($health['level'] === 'warning' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700') }}">
                 {{ $health['label'] }}
             </span>
         </div>
-        <div class="grid divide-y divide-slate-100 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-            <div class="p-5">
+        <div class="grid gap-3 p-4 sm:grid-cols-3">
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
                 <p class="text-xs text-slate-500">Backup terakhir berhasil</p>
                 <p class="mt-1 font-semibold text-slate-900">{{ $health['last_success_at']?->translatedFormat('d M Y H:i') ?? 'Belum pernah' }}</p>
                 <p class="mt-1 truncate text-xs text-slate-500" title="{{ $health['last_success_name'] }}">{{ $health['last_success_name'] ?? 'Tidak ada berkas' }}</p>
             </div>
-            <div class="p-5">
+            <div class="rounded-xl border {{ $health['automatic_enabled'] ? 'border-emerald-200 bg-emerald-50/50' : 'border-amber-200 bg-amber-50/50' }} p-4">
                 <p class="text-xs text-slate-500">Backup otomatis</p>
                 <p class="mt-1 font-semibold {{ $health['automatic_enabled'] ? 'text-emerald-700' : 'text-amber-700' }}">{{ $health['automatic_enabled'] ? 'Aktif · '.$health['automatic_time'] : 'Belum diaktifkan' }}</p>
-                <p class="mt-1 text-xs text-slate-500">Scheduler hosting harus berjalan setiap menit.</p>
+                <p class="mt-1 text-xs text-slate-500">{{ $health['automatic_enabled'] ? 'Dijalankan oleh scheduler hosting.' : 'Aktifkan scheduler di hosting.' }}</p>
             </div>
-            <div class="p-5">
+            <div class="rounded-xl border {{ $health['offsite_enabled'] && !$health['offsite_last_error'] ? 'border-emerald-200 bg-emerald-50/50' : 'border-amber-200 bg-amber-50/50' }} p-4">
                 <p class="text-xs text-slate-500">Salinan off-site</p>
                 <p class="mt-1 font-semibold {{ $health['offsite_enabled'] && !$health['offsite_last_error'] ? 'text-emerald-700' : 'text-amber-700' }}">
                     {{ $health['offsite_enabled'] ? 'Aktif · '.strtoupper($health['offsite_disk']) : 'Belum dikonfigurasi' }}
                 </p>
-                <p class="mt-1 text-xs text-slate-500">{{ $health['offsite_last_success_at'] ? 'Terakhir tersalin '.$health['offsite_last_success_at']->diffForHumans() : 'Belum ada bukti salinan di luar server.' }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ $health['offsite_last_success_at'] ? 'Tersalin '.$health['offsite_last_success_at']->diffForHumans() : 'Belum ada salinan di luar server.' }}</p>
             </div>
         </div>
         @if ($health['last_error'] || $health['offsite_last_error'])
@@ -66,29 +66,48 @@
                 >Jadikan Data Operasional Utama</x-confirm-button>
             </div>
         </x-warning-banner>
-    @else
-        <x-warning-banner variant="success" title="Database operasional utama" class="mb-4">
-            Belum ada penanda bahwa database aktif berasal dari proses restore melalui aplikasi ini.
-        </x-warning-banner>
     @endif
 
-    <x-warning-banner :variant="$kesiapan['siap'] ? 'success' : 'danger'" :title="$kesiapan['siap'] ? 'Backup & restore siap' : 'Backup & restore belum siap'" class="mb-4">
-        {{ $kesiapan['pesan'] }}
-        @if ($kesiapan['siap'])
-            <span class="mt-1 block text-xs opacity-80">
-                Driver: {{ strtoupper($kesiapan['driver']) }}
-                &middot; Mode aktif: {{ ($kesiapan['mode'] ?? 'pdo') === 'cli' ? 'MySQL CLI' : 'PHP/PDO' }}
-            </span>
-        @endif
-    </x-warning-banner>
-
-    <x-warning-banner variant="info" title="Cakupan backup dan pemulihan" class="mb-4">
-        Backup mencakup seluruh database dan berkas privat (surat keterangan, foto santri). Pemulihan (restore) hanya
-        mengembalikan bagian <strong>database</strong> secara otomatis - berkas privat tetap ada di server dan tidak
-        ikut ditimpa. Sebelum pemulihan dijalankan, sistem selalu membuat backup pengaman dari kondisi saat ini
-        terlebih dahulu. Backup baru menyimpan manifest versi dan daftar migration; setelah restore, migration yang
-        tertinggal dijalankan otomatis lalu struktur tabel inti diperiksa.
-    </x-warning-banner>
+    <details class="card group overflow-hidden">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 marker:content-none">
+            <div class="flex min-w-0 items-center gap-3">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full {{ $kesiapan['siap'] ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700' }}" aria-hidden="true">
+                    {{ $kesiapan['siap'] ? '✓' : '!' }}
+                </span>
+                <div class="min-w-0">
+                    <p class="font-semibold text-slate-900">Status sistem</p>
+                    <p class="truncate text-xs {{ $kesiapan['siap'] ? 'text-slate-500' : 'text-red-700' }}">
+                        {{ $kesiapan['siap'] ? 'Database utama dan layanan backup siap digunakan.' : $kesiapan['pesan'] }}
+                    </p>
+                </div>
+            </div>
+            <span class="shrink-0 text-sm font-medium text-slate-500 group-open:hidden">Lihat detail</span>
+            <span class="hidden shrink-0 text-sm font-medium text-slate-500 group-open:inline">Tutup</span>
+        </summary>
+        <div class="grid gap-5 border-t border-slate-100 bg-slate-50/60 px-5 py-4 text-sm text-slate-600 lg:grid-cols-2">
+            <div>
+                <p class="font-semibold text-slate-900">Database operasional</p>
+                <p class="mt-1">
+                    {{ $snapshotAktif
+                        ? 'Database aktif berasal dari hasil restore. Rincian dan tindakan pengamanan ditampilkan pada peringatan di atas.'
+                        : 'Database utama aktif dan tidak memiliki penanda hasil restore melalui aplikasi.' }}
+                </p>
+                <p class="mt-3 font-semibold text-slate-900">Kesiapan backup</p>
+                <p class="mt-1">{{ $kesiapan['pesan'] }}</p>
+                @if ($kesiapan['siap'])
+                    <p class="mt-1 text-xs text-slate-500">
+                        Driver {{ strtoupper($kesiapan['driver']) }}
+                        &middot; {{ ($kesiapan['mode'] ?? 'pdo') === 'cli' ? 'MySQL CLI' : 'PHP/PDO' }}
+                    </p>
+                @endif
+            </div>
+            <div>
+                <p class="font-semibold text-slate-900">Cakupan backup dan pemulihan</p>
+                <p class="mt-1">Backup mencakup database dan berkas privat. Restore mengembalikan database, sedangkan berkas privat tidak ditimpa.</p>
+                <p class="mt-2">Sebelum restore, sistem membuat backup pengaman, memeriksa versi struktur, lalu menjalankan migration yang tertinggal.</p>
+            </div>
+        </div>
+    </details>
 
     <div class="toolbar mb-4 sm:justify-between">
         <div class="w-full sm:max-w-md">

@@ -119,6 +119,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::livewire('/kantin/kebijakan', 'admin.kebijakan.kantin-form')->name('kantin.kebijakan.index');
     Route::livewire('/banner', 'admin.banner.index')->name('banner.index');
     Route::livewire('/pengaturan/aplikasi', 'admin.pengaturan.aplikasi')->name('pengaturan.aplikasi');
+    Route::livewire('/pengaturan/maintenance', 'admin.pengaturan.maintenance')->name('pengaturan.maintenance');
     Route::livewire('/pengaturan/midtrans', 'admin.pengaturan.midtrans')->name('pengaturan.midtrans');
 });
 

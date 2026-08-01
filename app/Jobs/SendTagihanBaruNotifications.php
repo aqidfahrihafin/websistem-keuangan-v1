@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Tagihan;
 use App\Services\PushNotificationService;
+use App\Services\MaintenanceModeService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -23,8 +24,14 @@ class SendTagihanBaruNotifications implements ShouldQueue
 
     public function __construct(private string $batchId) {}
 
-    public function handle(PushNotificationService $push): void
+    public function handle(PushNotificationService $push, MaintenanceModeService $maintenance): void
     {
+        if ($maintenance->active()) {
+            $this->release(60);
+
+            return;
+        }
+
         Tagihan::query()
             ->where('generated_batch_id', $this->batchId)
             ->with(['santri.walis', 'jenisTagihan'])
