@@ -36,14 +36,9 @@ class RejectRequestsDuringOperationalMaintenance
             return true;
         }
 
-        // Login stays reachable as a recovery entrance. LoginForm itself
-        // only retains an authenticated session for the admin role while
-        // maintenance is active.
-        if ($request->is('login', 'maintenance/admin-login')) {
-            return true;
-        }
-
-        if ($request->is('livewire/update') && $this->isLivewireComponent($request, 'auth.login-form')) {
+        // Only the dedicated non-Livewire admin recovery login stays open.
+        // The regular login page must show the maintenance information.
+        if ($request->is('maintenance/admin-login')) {
             return true;
         }
 
@@ -56,7 +51,7 @@ class RejectRequestsDuringOperationalMaintenance
             return true;
         }
 
-        if ($recoverySession && $request->is('livewire/update') && $this->isLivewireComponent($request, 'admin.pengaturan.maintenance')) {
+        if ($recoverySession && $request->is('livewire/update')) {
             return true;
         }
 

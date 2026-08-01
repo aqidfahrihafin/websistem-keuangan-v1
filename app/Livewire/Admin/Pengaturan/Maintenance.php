@@ -22,6 +22,9 @@ class Maintenance extends Component
     public function mount(MaintenanceModeService $maintenance): void
     {
         $status = $maintenance->status();
+        if ($status['enabled'] && auth()->user()?->hasRole('admin')) {
+            session()->put('maintenance.admin_recovery', true);
+        }
         $this->message = $status['message'];
         $this->expectedEndAt = $status['expected_end_at']?->format('Y-m-d\TH:i');
     }
@@ -48,6 +51,7 @@ class Maintenance extends Component
                 filled($data['expectedEndAt']) ? Carbon::parse($data['expectedEndAt']) : null,
                 auth()->user(),
             );
+            session()->put('maintenance.admin_recovery', true);
             try {
                 Artisan::call('queue:restart');
             } catch (\Throwable $queueError) {
