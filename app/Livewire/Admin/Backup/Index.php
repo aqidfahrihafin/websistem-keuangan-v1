@@ -19,6 +19,11 @@ class Index extends Component
 {
     use WithPagination, WithPerPage;
 
+    public function boot(): void
+    {
+        abort_unless(auth()->user()?->hasRole('superadmin'), 403);
+    }
+
     public string $search = '';
 
     public bool $showPulihkanModal = false;

@@ -52,7 +52,7 @@ class MaintenanceAdminLoginController extends Controller
             return $this->reject($request, $key);
         }
 
-        if (! Auth::user()->hasRole('admin')) {
+        if (! Auth::user()->hasRole('superadmin')) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -77,7 +77,7 @@ class MaintenanceAdminLoginController extends Controller
     {
         abort_unless(
             $request->session()->get('maintenance.admin_recovery') === true
-                && $request->user()?->hasRole('admin'),
+                && $request->user()?->hasRole('superadmin'),
             403,
         );
 
@@ -95,6 +95,6 @@ class MaintenanceAdminLoginController extends Controller
             ->withProperties(['login' => $request->input('login'), 'ip' => $request->ip(), 'maintenance_recovery' => true])
             ->log('Percobaan login admin pemulihan maintenance gagal');
 
-        return back()->withErrors(['login' => 'Akun admin atau kata sandi salah.'])->onlyInput('login');
+        return back()->withErrors(['login' => 'Akun superadmin atau kata sandi salah.'])->onlyInput('login');
     }
 }

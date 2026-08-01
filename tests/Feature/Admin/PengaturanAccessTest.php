@@ -1,6 +1,7 @@
 <?php
 
-it('restricts kesantrian records and settings/system-administration pages to admin only, not bendahara', function () {
+it('keeps operational master data with admin while isolating system controls to superadmin', function () {
+    $superadmin = makeUserWithRole('superadmin');
     $admin = makeUserWithRole('admin');
     $bendahara = makeUserWithRole('bendahara');
     // admin.wali.index queries User::role('wali'), which throws unless the
@@ -13,7 +14,6 @@ it('restricts kesantrian records and settings/system-administration pages to adm
         'admin.keluarga.index',
         'admin.wali.index',
         'admin.kartu.index',
-        'admin.users.index',
         'admin.lembaga.index',
         'admin.kamar.index',
         'admin.perangkat.index',
@@ -21,12 +21,24 @@ it('restricts kesantrian records and settings/system-administration pages to adm
         'admin.kantin.penarikan.index',
         'admin.kantin.rekening.index',
         'admin.kantin.ledger.index',
-        'admin.pengaturan.aplikasi',
-        'admin.pengaturan.midtrans',
     ];
 
     foreach ($routes as $routeName) {
         $this->actingAs($admin)->get(route($routeName))->assertOk();
+        $this->actingAs($bendahara)->get(route($routeName))->assertForbidden();
+    }
+
+    $sensitiveRoutes = [
+        'admin.users.index',
+        'admin.pengaturan.aplikasi',
+        'admin.pengaturan.maintenance',
+        'admin.pengaturan.midtrans',
+        'admin.backup.index',
+    ];
+
+    foreach ($sensitiveRoutes as $routeName) {
+        $this->actingAs($superadmin)->get(route($routeName))->assertOk();
+        $this->actingAs($admin)->get(route($routeName))->assertForbidden();
         $this->actingAs($bendahara)->get(route($routeName))->assertForbidden();
     }
 });

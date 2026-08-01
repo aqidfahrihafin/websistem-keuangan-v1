@@ -136,7 +136,7 @@ it('blocks a backup when an already-applied migration file was changed', functio
 it('shows backup compatibility details before opening the restore confirmation', function () {
     Storage::fake(BackupService::DISK);
     writeBackupZip('legacy.zip');
-    $admin = makeUserWithRole('admin');
+    $admin = makeUserWithRole('superadmin');
 
     Livewire::actingAs($admin)->test(Index::class)
         ->call('openPulihkan', 'legacy.zip')
@@ -189,9 +189,12 @@ it('refuses to restore without the exact confirmation phrase', function () {
         ->toThrow(RuntimeException::class, 'Kode konfirmasi salah.');
 });
 
-it('lets an admin view the backup page but forbids bendahara and other roles', function () {
-    $admin = makeUserWithRole('admin');
+it('lets only superadmin view the backup page', function () {
+    $admin = makeUserWithRole('superadmin');
     Livewire::actingAs($admin)->test(Index::class)->assertOk();
+
+    $operationalAdmin = makeUserWithRole('admin');
+    $this->actingAs($operationalAdmin)->get(route('admin.backup.index'))->assertForbidden();
 
     $bendahara = makeUserWithRole('bendahara');
     $this->actingAs($bendahara)->get(route('admin.backup.index'))->assertForbidden();
@@ -201,7 +204,7 @@ it('lets an admin view the backup page but forbids bendahara and other roles', f
 });
 
 it('lets an admin acknowledge a restored snapshot as the operational primary database', function () {
-    $admin = makeUserWithRole('admin');
+    $admin = makeUserWithRole('superadmin');
     app(DataSnapshotService::class)->markRestored(
         'backup-terbaru.zip',
         now()->subHour()->toIso8601String(),
@@ -218,7 +221,7 @@ it('lets an admin acknowledge a restored snapshot as the operational primary dat
 });
 
 it('shows a validation error on the restore modal when the confirmation phrase is wrong', function () {
-    $admin = makeUserWithRole('admin');
+    $admin = makeUserWithRole('superadmin');
 
     Livewire::actingAs($admin)->test(Index::class)
         ->call('openPulihkan', 'a.zip')

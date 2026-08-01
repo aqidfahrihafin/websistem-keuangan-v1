@@ -46,7 +46,7 @@
 @php
     $navGroups = [];
 
-    if (auth()->check() && auth()->user()->hasAnyRole(['admin', 'bendahara'])) {
+    if (auth()->check() && auth()->user()->hasAnyRole(['superadmin', 'admin', 'bendahara'])) {
         $navGroups = [
             [
                 'label' => null,
@@ -93,7 +93,7 @@
         // record-keeping, kantin operations, or system administration, so
         // these groups are hidden rather than shown with dead links
         // bendahara can't actually open (see routes/web.php).
-        if (auth()->user()->hasRole('admin')) {
+        if (auth()->user()->hasAnyRole(['superadmin', 'admin'])) {
             $navGroups[] = [
                 'label' => 'Data Master Santri',
                 'items' => [
@@ -121,21 +121,23 @@
             $navGroups[] = [
                 'label' => 'Sistem & Akses',
                 'items' => [
-                    ['route' => 'admin.users.index', 'match' => 'admin.users.*', 'label' => 'Pengguna & Petugas', 'icon' => 'users'],
                     ['route' => 'admin.perangkat.index', 'match' => 'admin.perangkat.*', 'label' => 'Perangkat Kiosk', 'icon' => 'device'],
                     ['route' => 'admin.banner.index', 'match' => 'admin.banner.*', 'label' => 'Banner Beranda', 'icon' => 'image'],
                 ],
             ];
 
-            $navGroups[] = [
-                'label' => 'Konfigurasi',
-                'items' => [
-                    ['route' => 'admin.pengaturan.aplikasi', 'match' => 'admin.pengaturan.aplikasi', 'label' => 'Pengaturan Aplikasi', 'icon' => 'adjustments'],
-                    ['route' => 'admin.pengaturan.maintenance', 'match' => 'admin.pengaturan.maintenance', 'label' => 'Maintenance', 'icon' => 'shield'],
-                    ['route' => 'admin.pengaturan.midtrans', 'match' => 'admin.pengaturan.midtrans', 'label' => 'Pengaturan Midtrans', 'icon' => 'credit-card'],
-                    ['route' => 'admin.backup.index', 'match' => 'admin.backup.*', 'label' => 'Backup & Restore', 'icon' => 'archive'],
-                ],
-            ];
+            if (auth()->user()->hasRole('superadmin')) {
+                $navGroups[] = [
+                    'label' => 'Kontrol Sistem',
+                    'items' => [
+                        ['route' => 'admin.users.index', 'match' => 'admin.users.*', 'label' => 'Pengguna & Petugas', 'icon' => 'users'],
+                        ['route' => 'admin.pengaturan.aplikasi', 'match' => 'admin.pengaturan.aplikasi', 'label' => 'Pengaturan Aplikasi', 'icon' => 'adjustments'],
+                        ['route' => 'admin.pengaturan.maintenance', 'match' => 'admin.pengaturan.maintenance', 'label' => 'Maintenance', 'icon' => 'shield'],
+                        ['route' => 'admin.pengaturan.midtrans', 'match' => 'admin.pengaturan.midtrans', 'label' => 'Pengaturan Midtrans', 'icon' => 'credit-card'],
+                        ['route' => 'admin.backup.index', 'match' => 'admin.backup.*', 'label' => 'Backup & Restore', 'icon' => 'archive'],
+                    ],
+                ];
+            }
         }
     } elseif (auth()->check() && auth()->user()->hasAnyRole(['admin_lembaga', 'admin_rayon'])) {
         $navGroups = [[
@@ -354,10 +356,10 @@
                                 <span class="min-w-0 flex-1 truncate text-[10px] font-bold uppercase tracking-[.13em]">
                                     {{ $group['label'] }}
                                 </span>
-                                <span class="rounded-md bg-white/[.06] px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-slate-400">
+                                <span class="rounded-md bg-white/6 px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-slate-400">
                                     {{ count($group['items']) }}
                                 </span>
-                                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/[.04]">
+                                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/4">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         viewBox="0 0 24 24"
@@ -480,7 +482,7 @@
 
                     @auth
                         @if (auth()->user()->hasRole('wali'))
-                            <div class="order-3 w-full border-t border-slate-200/70 pt-2 sm:order-none sm:w-auto sm:border-0 sm:pt-0">
+                            <div class="order-3 w-full border-t border-slate-200/70 pt-2 sm:order-0 sm:w-auto sm:border-0 sm:pt-0">
                                 <livewire:wali.anak-switcher />
                             </div>
                             <div class="hidden h-8 w-px bg-slate-200 sm:block"></div>
@@ -553,7 +555,7 @@
                 <x-alert-banner type="success" :message="session('status')" class="mb-5" />
                 <x-alert-banner type="error" :message="session('error')" class="mb-5" />
 
-                @if (auth()->check() && auth()->user()->hasRole('admin') && !request()->routeIs('admin.backup.*'))
+                @if (auth()->check() && auth()->user()->hasRole('superadmin') && !request()->routeIs('admin.backup.*'))
                     @php($activeSnapshot = app(\App\Services\DataSnapshotService::class)->current())
                     @if ($activeSnapshot)
                         <x-warning-banner variant="warning" title="Snapshot hasil restore sedang aktif" class="mb-5">

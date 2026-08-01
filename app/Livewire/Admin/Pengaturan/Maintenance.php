@@ -13,6 +13,11 @@ use Livewire\Component;
 #[Layout('layouts::app')]
 class Maintenance extends Component
 {
+    public function boot(): void
+    {
+        abort_unless(auth()->user()?->hasRole('superadmin'), 403);
+    }
+
     public string $message = 'Sistem sedang dalam pemeliharaan untuk meningkatkan keamanan dan layanan.';
     public ?string $expectedEndAt = null;
     public string $confirmation = '';
@@ -22,7 +27,7 @@ class Maintenance extends Component
     public function mount(MaintenanceModeService $maintenance): void
     {
         $status = $maintenance->status();
-        if ($status['enabled'] && auth()->user()?->hasRole('admin')) {
+        if ($status['enabled'] && auth()->user()?->hasRole('superadmin')) {
             session()->put('maintenance.admin_recovery', true);
         }
         $this->message = $status['message'];

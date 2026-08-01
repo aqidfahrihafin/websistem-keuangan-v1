@@ -59,7 +59,7 @@ class InvoiceController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->hasAnyRole(['admin', 'bendahara'])) {
+        if ($user->hasAnyRole(['superadmin', 'admin', 'bendahara'])) {
             return;
         }
 
@@ -74,7 +74,7 @@ class InvoiceController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->hasAnyRole(['admin', 'bendahara'])) {
+        if ($user->hasAnyRole(['superadmin', 'admin', 'bendahara'])) {
             return;
         }
 

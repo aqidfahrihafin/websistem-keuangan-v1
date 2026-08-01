@@ -77,12 +77,12 @@ class LoginForm extends Component
             return;
         }
 
-        if ($maintenance->active() && ! Auth::user()->hasRole('admin')) {
+        if ($maintenance->active() && ! Auth::user()->hasRole('superadmin')) {
             Auth::logout();
             session()->invalidate();
             session()->regenerateToken();
             RateLimiter::clear($throttleKey);
-            $this->addError('login', 'Sistem sedang dalam maintenance. Hanya admin pemulihan yang dapat masuk.');
+            $this->addError('login', 'Sistem sedang dalam maintenance. Hanya superadmin pemulihan yang dapat masuk.');
 
             return;
         }

@@ -12,7 +12,7 @@ class DashboardRedirectController extends Controller
         $user = Auth::user();
 
         return match (true) {
-            $user->hasAnyRole(['admin', 'bendahara']) => redirect()->route('admin.dashboard'),
+            $user->hasAnyRole(['superadmin', 'admin', 'bendahara']) => redirect()->route('admin.dashboard'),
             $user->hasRole('petugas_kios') => redirect()->route('petugas-kios.dashboard'),
             $user->hasRole('pengasuh') => redirect()->route('pengasuh.dashboard'),
             $user->hasAnyRole(['admin_lembaga', 'admin_rayon']) => redirect()->route('unit.dashboard'),

@@ -53,8 +53,8 @@ it('blocks web and api users while preserving structured maintenance details', f
         ->assertJsonPath('maintenance.maintenance', true);
 });
 
-it('keeps authenticated administrators as the audited recovery path', function () {
-    $admin = makeUserWithRole('admin', ['must_change_password' => false]);
+it('keeps authenticated superadmin as the audited recovery path', function () {
+    $admin = makeUserWithRole('superadmin', ['must_change_password' => false]);
     app(MaintenanceModeService::class)->activate(
         'Pemeliharaan keamanan sistem sedang berlangsung.',
         null,
@@ -113,8 +113,8 @@ it('replaces the regular login with maintenance information', function () {
         ->assertSee(route('maintenance.admin-login'));
 });
 
-it('provides a non Livewire recovery login that only accepts administrators', function () {
-    $admin = makeUserWithRole('admin', [
+it('provides a non Livewire recovery login that only accepts superadmin', function () {
+    $admin = makeUserWithRole('superadmin', [
         'email' => 'direct-recovery@example.test',
         'password' => bcrypt('secret-password'),
         'must_change_password' => false,

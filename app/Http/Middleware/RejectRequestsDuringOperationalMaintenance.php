@@ -59,7 +59,7 @@ class RejectRequestsDuringOperationalMaintenance
             return true;
         }
 
-        if ($request->user()?->hasRole('admin') !== true) {
+        if ($request->user()?->hasRole('superadmin') !== true) {
             return false;
         }
 

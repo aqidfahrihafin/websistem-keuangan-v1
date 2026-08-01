@@ -12,6 +12,11 @@ class Aplikasi extends Component
 {
     use WithFileUploads;
 
+    public function boot(): void
+    {
+        abort_unless(auth()->user()?->hasRole('superadmin'), 403);
+    }
+
     public string $nama_aplikasi = '';
 
     public string $nama_pondok = '';

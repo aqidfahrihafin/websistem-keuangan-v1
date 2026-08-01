@@ -17,6 +17,11 @@ use Livewire\Component;
 #[Layout('layouts::app')]
 class Midtrans extends Component
 {
+    public function boot(): void
+    {
+        abort_unless(auth()->user()?->hasRole('superadmin'), 403);
+    }
+
     // Deliberately left blank on mount rather than pre-filled with the real
     // secret - Livewire serializes public properties into the page's HTML/
     // wire snapshot, so pre-filling would leak the live Server Key to

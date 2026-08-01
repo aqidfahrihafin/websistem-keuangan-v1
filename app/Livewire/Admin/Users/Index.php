@@ -20,6 +20,11 @@ class Index extends Component
 {
     use WithPagination, WithPerPage;
 
+    public function boot(): void
+    {
+        abort_unless(auth()->user()?->hasRole('superadmin'), 403);
+    }
+
     /** Role yang boleh dikelola langsung dari formulir pengguna. */
     private const ROLE_FORM = [
         'admin',

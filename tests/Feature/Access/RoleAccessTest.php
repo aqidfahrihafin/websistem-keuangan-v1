@@ -22,10 +22,12 @@ it('forbids a wali from reaching the santri area and vice versa', function () {
     $this->actingAs($santri)->get('/wali')->assertForbidden();
 });
 
-it('allows admin and bendahara into the admin area', function () {
+it('allows superadmin, admin and bendahara into the financial admin area', function () {
+    $superadmin = makeUserWithRole('superadmin');
     $admin = makeUserWithRole('admin');
     $bendahara = makeUserWithRole('bendahara');
 
+    $this->actingAs($superadmin)->get('/admin')->assertOk();
     $this->actingAs($admin)->get('/admin')->assertOk();
     $this->actingAs($bendahara)->get('/admin')->assertOk();
 });

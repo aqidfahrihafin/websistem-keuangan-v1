@@ -25,7 +25,7 @@ Route::get('/maintenance/admin-login', [MaintenanceAdminLoginController::class, 
 Route::post('/maintenance/admin-login', [MaintenanceAdminLoginController::class, 'store'])
     ->name('maintenance.admin-login.store')->middleware(['guest', 'throttle:10,1']);
 Route::post('/maintenance/end', [MaintenanceAdminLoginController::class, 'destroy'])
-    ->name('maintenance.end')->middleware(['auth', 'role:admin', 'throttle:10,1']);
+    ->name('maintenance.end')->middleware(['auth', 'role:superadmin', 'throttle:10,1']);
 Route::post('/logout', LogoutController::class)->name('logout')->middleware('auth');
 
 // {device?} binds by kode_device (not id) so each physical kiosk gets its
@@ -54,7 +54,7 @@ Route::middleware('throttle:6,1')->group(function () {
     Route::get('/cron/queue/{secret}', [CronTriggerController::class, 'queue'])->name('cron.queue');
 });
 
-Route::middleware(['auth', 'role:admin|bendahara'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'role:superadmin|admin|bendahara'])->prefix('admin')->name('admin.')->group(function () {
     Route::livewire('/', 'admin.dashboard')->name('dashboard');
 
     Route::livewire('/tagihan', 'admin.tagihan.index')->name('tagihan.index');
@@ -89,7 +89,7 @@ Route::middleware(['auth', 'role:admin|bendahara'])->prefix('admin')->name('admi
 // already shows the relevant santri's nama/nis inline via its relation, so
 // bendahara loses no ability to identify who a bill/transaction belongs to
 // by not having a standalone data-management screen for it.
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'role:superadmin|admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::livewire('/santri', 'admin.santri.index')->name('santri.index');
     Route::livewire('/santri/tambah', 'admin.santri.form')->name('santri.create');
     Route::livewire('/santri/{santri}/ubah', 'admin.santri.form')->name('santri.edit');
@@ -113,8 +113,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 // excluding bendahara: bendahara's job is financial management (tagihan,
 // transaksi, topup, penarikan, laporan keuangan - all in the first group
 // above), not managing users, institutions, kiosk devices, or app-wide config.
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::livewire('/users', 'admin.users.index')->name('users.index');
+Route::middleware(['auth', 'role:superadmin|admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::livewire('/lembaga', 'admin.lembaga.index')->name('lembaga.index');
     Route::livewire('/rayon', 'admin.rayon.index')->name('rayon.index');
     Route::livewire('/kamar', 'admin.kamar.index')->name('kamar.index');
@@ -125,6 +124,13 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::livewire('/kantin/ledger', 'admin.kantin.ledger')->name('kantin.ledger.index');
     Route::livewire('/kantin/kebijakan', 'admin.kebijakan.kantin-form')->name('kantin.kebijakan.index');
     Route::livewire('/banner', 'admin.banner.index')->name('banner.index');
+});
+
+// Credentials, payment configuration, and service availability are
+// infrastructure controls. They are deliberately isolated from operational
+// admins; the pengasuh approval flow remains a separate business safeguard.
+Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::livewire('/users', 'admin.users.index')->name('users.index');
     Route::livewire('/pengaturan/aplikasi', 'admin.pengaturan.aplikasi')->name('pengaturan.aplikasi');
     Route::livewire('/pengaturan/maintenance', 'admin.pengaturan.maintenance')->name('pengaturan.maintenance');
     Route::livewire('/pengaturan/midtrans', 'admin.pengaturan.midtrans')->name('pengaturan.midtrans');
@@ -132,7 +138,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
 // Backup & restore is system/infrastructure-level, not finance-clerk-level -
 // deliberately scoped to role:admin only, excluding bendahara.
-Route::middleware(['auth', 'role:admin'])->prefix('admin/backup')->name('admin.backup.')->group(function () {
+Route::middleware(['auth', 'role:superadmin'])->prefix('admin/backup')->name('admin.backup.')->group(function () {
     Route::livewire('/', 'admin.backup.index')->name('index');
     Route::get('/{nama}/unduh', [BackupController::class, 'unduh'])->name('unduh');
 });

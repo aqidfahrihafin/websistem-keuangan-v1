@@ -12,7 +12,7 @@ class UnitAccessService
     /** Membatasi query santri berdasarkan seluruh unit aktif milik pengguna. */
     public function scopeSantri(Builder $query, User $user): Builder
     {
-        if ($user->hasRole('admin')) return $query;
+        if ($user->hasAnyRole(['superadmin', 'admin'])) return $query;
 
         if ($user->hasRole('admin_lembaga')) {
             return $query->whereIn('lembaga_id', $this->lembagaIds($user));
