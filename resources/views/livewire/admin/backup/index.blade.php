@@ -6,6 +6,42 @@
         <x-alert-banner type="error" :message="$pesanError" class="mb-4" />
     @endif
 
+    <section class="card overflow-hidden">
+        <div class="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Backup Health Center</p>
+                <h2 class="mt-1 text-lg font-semibold text-slate-900">Kondisi perlindungan data</h2>
+            </div>
+            <span class="badge {{ $health['level'] === 'healthy' ? 'bg-emerald-100 text-emerald-700' : ($health['level'] === 'warning' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700') }}">
+                {{ $health['label'] }}
+            </span>
+        </div>
+        <div class="grid divide-y divide-slate-100 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <div class="p-5">
+                <p class="text-xs text-slate-500">Backup terakhir berhasil</p>
+                <p class="mt-1 font-semibold text-slate-900">{{ $health['last_success_at']?->translatedFormat('d M Y H:i') ?? 'Belum pernah' }}</p>
+                <p class="mt-1 truncate text-xs text-slate-500" title="{{ $health['last_success_name'] }}">{{ $health['last_success_name'] ?? 'Tidak ada berkas' }}</p>
+            </div>
+            <div class="p-5">
+                <p class="text-xs text-slate-500">Backup otomatis</p>
+                <p class="mt-1 font-semibold {{ $health['automatic_enabled'] ? 'text-emerald-700' : 'text-amber-700' }}">{{ $health['automatic_enabled'] ? 'Aktif · '.$health['automatic_time'] : 'Belum diaktifkan' }}</p>
+                <p class="mt-1 text-xs text-slate-500">Scheduler hosting harus berjalan setiap menit.</p>
+            </div>
+            <div class="p-5">
+                <p class="text-xs text-slate-500">Salinan off-site</p>
+                <p class="mt-1 font-semibold {{ $health['offsite_enabled'] && !$health['offsite_last_error'] ? 'text-emerald-700' : 'text-amber-700' }}">
+                    {{ $health['offsite_enabled'] ? 'Aktif · '.strtoupper($health['offsite_disk']) : 'Belum dikonfigurasi' }}
+                </p>
+                <p class="mt-1 text-xs text-slate-500">{{ $health['offsite_last_success_at'] ? 'Terakhir tersalin '.$health['offsite_last_success_at']->diffForHumans() : 'Belum ada bukti salinan di luar server.' }}</p>
+            </div>
+        </div>
+        @if ($health['last_error'] || $health['offsite_last_error'])
+            <div class="border-t border-red-100 bg-red-50 px-5 py-3 text-xs text-red-700">
+                {{ $health['offsite_last_error'] ? 'Off-site: '.$health['offsite_last_error'] : 'Backup: '.$health['last_error'] }}
+            </div>
+        @endif
+    </section>
+
     @if ($snapshotAktif)
         <x-warning-banner variant="warning" title="Database sedang memakai hasil restore" class="mb-4">
             <p>

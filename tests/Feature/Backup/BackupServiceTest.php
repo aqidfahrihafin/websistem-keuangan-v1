@@ -3,6 +3,7 @@
 use App\Livewire\Admin\Backup\Index;
 use App\Services\BackupService;
 use App\Services\BackupSettingsService;
+use App\Services\BackupHealthService;
 use App\Services\DataSnapshotService;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Storage;
@@ -226,6 +227,9 @@ it('shows a validation error on the restore modal when the confirmation phrase i
 });
 
 it('falls back to the PHP/PDO backup mode when process execution is unavailable', function () {
+    $originalConnection = config('database.default');
+    \Illuminate\Support\Facades\Cache::setDefaultDriver('array');
+    \Illuminate\Support\Facades\Cache::forget('backup:kesiapan');
     config()->set('database.default', 'mysql');
     config()->set('database.connections.mysql', [
         'driver' => 'mysql',
@@ -239,7 +243,11 @@ it('falls back to the PHP/PDO backup mode when process execution is unavailable'
         'prefix' => '',
     ]);
 
-    $service = new class(app(BackupSettingsService::class), app(DataSnapshotService::class)) extends BackupService {
+    $settings = Mockery::mock(BackupSettingsService::class);
+    $settings->shouldReceive('mode')->andReturn(BackupSettingsService::MODE_AUTO);
+    $settings->shouldReceive('binaryPath')->andReturn(null);
+
+    $service = new class($settings, new DataSnapshotService, new BackupHealthService) extends BackupService {
         protected function ujiBinary(string $binary): void
         {
             throw new LogicException('The Process class relies on proc_open, which is not available on your PHP installation.');
@@ -247,8 +255,27 @@ it('falls back to the PHP/PDO backup mode when process execution is unavailable'
     };
 
     $kesiapan = $service->kesiapan();
+    config()->set('database.default', $originalConnection);
 
     expect($kesiapan['siap'])->toBeTrue()
         ->and($kesiapan['mode'])->toBe('pdo')
         ->and($kesiapan['pesan'])->toContain('Mode kompatibel hosting aktif');
+});
+
+it('reports backup health and automatic/offsite readiness', function () {
+    Storage::fake(BackupService::DISK);
+    config()->set('operations.automatic_backup_enabled', true);
+    config()->set('operations.backup_offsite_enabled', false);
+    $health = app(BackupHealthService::class);
+
+    expect($health->status([])['level'])->toBe('critical');
+
+    $health->recordAttempt();
+    $health->recordSuccess('fresh.zip');
+    $status = $health->status([]);
+
+    expect($status['level'])->toBe('healthy')
+        ->and($status['automatic_enabled'])->toBeTrue()
+        ->and($status['offsite_enabled'])->toBeFalse()
+        ->and($status['last_success_name'])->toBe('fresh.zip');
 });

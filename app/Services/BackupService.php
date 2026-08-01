@@ -30,6 +30,7 @@ class BackupService
     public function __construct(
         private BackupSettingsService $settings,
         private DataSnapshotService $snapshot,
+        private BackupHealthService $health,
     ) {}
 
     /**
@@ -67,6 +68,33 @@ class BackupService
     }
 
     public function buat(): void
+    {
+        $this->health->recordAttempt();
+
+        try {
+            $this->buatInternal();
+            $latest = $this->daftar()[0]['nama'] ?? null;
+            if (! $latest) {
+                throw new RuntimeException('Backup selesai tetapi berkas terbaru tidak ditemukan.');
+            }
+            $this->health->recordSuccess($latest);
+
+            try {
+                $this->health->syncOffsite($this->pathAman($latest));
+            } catch (Throwable $offsiteError) {
+                $this->health->recordOffsiteFailure($offsiteError);
+                Log::warning('Backup lokal berhasil tetapi replikasi off-site gagal.', [
+                    'backup' => $latest,
+                    'error' => $offsiteError->getMessage(),
+                ]);
+            }
+        } catch (Throwable $error) {
+            $this->health->recordFailure($error);
+            throw $error;
+        }
+    }
+
+    private function buatInternal(): void
     {
         $this->pastikanSiap();
 

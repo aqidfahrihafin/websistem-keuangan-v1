@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Backup;
 use App\Livewire\Concerns\WithPerPage;
 use App\Services\BackupService;
 use App\Services\BackupSettingsService;
+use App\Services\BackupHealthService;
 use App\Services\DataSnapshotService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Layout;
@@ -168,14 +169,15 @@ class Index extends Component
         $this->pesanSukses = 'Database aktif telah ditetapkan sebagai data operasional utama. Penanda hasil restore sudah dihapus.';
     }
 
-    public function render(BackupService $service, DataSnapshotService $snapshot)
+    public function render(BackupService $service, DataSnapshotService $snapshot, BackupHealthService $health)
     {
         // BackupService::daftar() isn't an Eloquent query (it lists .zip
         // files off disk) - paginate() isn't available on a plain array, so
         // the same page/perPage tracking WithPagination already gives every
         // other list here is wrapped around a manual slice instead.
         $search = mb_strtolower(trim($this->search));
-        $all = collect($service->daftar())
+        $allBackups = collect($service->daftar());
+        $all = $allBackups
             ->when(
                 $search !== '',
                 fn ($backups) => $backups->filter(
@@ -200,6 +202,7 @@ class Index extends Component
             'title' => 'Backup & Restore',
             'backups' => $backups,
             'kesiapan' => $service->kesiapan(),
+            'health' => $health->status($allBackups->all()),
             'snapshotAktif' => $snapshot->current(),
         ]);
     }
