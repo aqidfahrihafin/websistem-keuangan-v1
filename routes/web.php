@@ -12,6 +12,7 @@ use App\Http\Controllers\KwitansiDownloadController;
 use App\Http\Controllers\LaporanKeuanganController;
 use App\Http\Controllers\LegerKasPondokController;
 use App\Http\Controllers\MidtransWebhookController;
+use App\Http\Controllers\MaintenanceAdminLoginController;
 use App\Http\Controllers\PrdDownloadController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +20,10 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn () => redirect()->route('login'));
 
 Route::livewire('/login', 'auth.login-form')->name('login')->middleware('guest');
+Route::get('/maintenance/admin-login', [MaintenanceAdminLoginController::class, 'create'])
+    ->name('maintenance.admin-login')->middleware('guest');
+Route::post('/maintenance/admin-login', [MaintenanceAdminLoginController::class, 'store'])
+    ->name('maintenance.admin-login.store')->middleware(['guest', 'throttle:10,1']);
 Route::post('/logout', LogoutController::class)->name('logout')->middleware('auth');
 
 // {device?} binds by kode_device (not id) so each physical kiosk gets its

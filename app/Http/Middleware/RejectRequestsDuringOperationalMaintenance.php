@@ -39,7 +39,7 @@ class RejectRequestsDuringOperationalMaintenance
         // Login stays reachable as a recovery entrance. LoginForm itself
         // only retains an authenticated session for the admin role while
         // maintenance is active.
-        if ($request->is('login')) {
+        if ($request->is('login', 'maintenance/admin-login')) {
             return true;
         }
 

@@ -128,3 +128,38 @@ it('keeps login open for admin recovery and rejects non admin sessions', functio
     $this->assertAuthenticatedAs($admin);
     $this->assertTrue(session('maintenance.admin_recovery'));
 });
+
+it('provides a non Livewire recovery login that only accepts administrators', function () {
+    $admin = makeUserWithRole('admin', [
+        'email' => 'direct-recovery@example.test',
+        'password' => bcrypt('secret-password'),
+        'must_change_password' => false,
+    ]);
+    $wali = makeUserWithRole('wali', [
+        'email' => 'direct-blocked@example.test',
+        'password' => bcrypt('secret-password'),
+        'must_change_password' => false,
+    ]);
+    app(MaintenanceModeService::class)->activate(
+        'Pemeliharaan keamanan sistem sedang berlangsung.',
+        null,
+        $admin,
+    );
+
+    $this->get('/maintenance/admin-login')
+        ->assertOk()
+        ->assertSee('Login khusus admin');
+
+    $this->post('/maintenance/admin-login', [
+        'login' => $wali->email,
+        'password' => 'secret-password',
+    ])->assertSessionHasErrors('login');
+    $this->assertGuest();
+
+    $this->post('/maintenance/admin-login', [
+        'login' => $admin->email,
+        'password' => 'secret-password',
+    ])->assertRedirect(route('admin.pengaturan.maintenance'));
+    $this->assertAuthenticatedAs($admin);
+    $this->assertTrue(session('maintenance.admin_recovery'));
+});

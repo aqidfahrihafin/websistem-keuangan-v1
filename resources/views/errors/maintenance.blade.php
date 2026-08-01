@@ -33,7 +33,7 @@
 
                 <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                     <button type="button" onclick="window.location.reload()" class="btn-primary min-h-11 px-6">Coba Lagi</button>
-                    <a href="{{ route('login') }}" class="btn-secondary min-h-11 px-6">Login Admin</a>
+                    <a href="{{ route('maintenance.admin-login') }}" class="btn-secondary min-h-11 px-6">Login Admin</a>
                 </div>
                 <p class="mt-5 text-xs leading-5 text-slate-500">Transaksi sementara dihentikan untuk menjaga konsistensi dan keamanan data keuangan.</p>
             </div>
