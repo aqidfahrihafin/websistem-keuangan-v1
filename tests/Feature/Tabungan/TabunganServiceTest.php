@@ -359,6 +359,14 @@ it('menolak petugas kedua ketika perangkat masih memiliki sesi aktif', function 
         ->toThrow(RuntimeException::class, 'Perangkat masih memiliki sesi aktif milik')
         ->and(SesiKas::where('device_id', $device->id)->where('status', SesiKas::STATUS_AKTIF)->count())->toBe(1)
         ->and($device->fresh()->sesi_kas_aktif_id)->toBe($sesiPertama->id);
+
+    Livewire::actingAs($petugasKedua)->test(DashboardPetugasKios::class)
+        ->set('deviceId', $device->id)
+        ->assertSee('Perangkat masih memiliki sesi aktif')
+        ->assertSee($petugasPertama->name)
+        ->assertDontSee('Lokasi kios')
+        ->assertDontSee('Saldo awal')
+        ->assertDontSee('Periksa &amp; Buka Sesi', false);
 });
 
 it('menolak petugas membuka sesi baru sebelum penutupan sebelumnya diverifikasi', function () {

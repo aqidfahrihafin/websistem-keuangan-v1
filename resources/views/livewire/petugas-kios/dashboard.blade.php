@@ -63,7 +63,7 @@
                             Anda tidak dapat memproses transaksi pada perangkat ini sebelum sesi tersebut ditutup.
                         </x-warning-banner>
                     </div>
-                @endif
+                @else
                 @if ($sesiSebelumnya)
                     @php
                         $sesiSudahDiverifikasi = in_array($sesiSebelumnya->status, [
@@ -152,6 +152,7 @@
                         </x-confirm-button>
                     </div>
                 </div>
+                @endif
             </div>
         </div>
     @else
