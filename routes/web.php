@@ -24,6 +24,8 @@ Route::get('/maintenance/admin-login', [MaintenanceAdminLoginController::class, 
     ->name('maintenance.admin-login')->middleware('guest');
 Route::post('/maintenance/admin-login', [MaintenanceAdminLoginController::class, 'store'])
     ->name('maintenance.admin-login.store')->middleware(['guest', 'throttle:10,1']);
+Route::post('/maintenance/end', [MaintenanceAdminLoginController::class, 'destroy'])
+    ->name('maintenance.end')->middleware(['auth', 'role:admin', 'throttle:10,1']);
 Route::post('/logout', LogoutController::class)->name('logout')->middleware('auth');
 
 // {device?} binds by kode_device (not id) so each physical kiosk gets its

@@ -51,6 +51,10 @@ class RejectRequestsDuringOperationalMaintenance
             return true;
         }
 
+        if ($recoverySession && $request->is('maintenance/end')) {
+            return true;
+        }
+
         if ($recoverySession && $request->is('livewire/update')) {
             return true;
         }

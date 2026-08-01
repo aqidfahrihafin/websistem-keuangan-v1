@@ -144,4 +144,9 @@ it('provides a non Livewire recovery login that only accepts administrators', fu
     ])->assertRedirect(route('admin.pengaturan.maintenance'));
     $this->assertAuthenticatedAs($admin);
     $this->assertTrue(session('maintenance.admin_recovery'));
+
+    $this->post('/maintenance/end')
+        ->assertRedirect(route('admin.dashboard'));
+    expect(app(MaintenanceModeService::class)->active())->toBeFalse();
+    $this->assertNull(session('maintenance.admin_recovery'));
 });

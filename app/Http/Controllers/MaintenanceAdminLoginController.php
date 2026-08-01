@@ -73,6 +73,21 @@ class MaintenanceAdminLoginController extends Controller
         return redirect()->route('admin.pengaturan.maintenance');
     }
 
+    public function destroy(Request $request, MaintenanceModeService $maintenance): RedirectResponse
+    {
+        abort_unless(
+            $request->session()->get('maintenance.admin_recovery') === true
+                && $request->user()?->hasRole('admin'),
+            403,
+        );
+
+        $maintenance->deactivate($request->user());
+        $request->session()->forget('maintenance.admin_recovery');
+
+        return redirect()->route('admin.dashboard')
+            ->with('success', 'Maintenance dinonaktifkan. Seluruh layanan kembali dibuka.');
+    }
+
     private function reject(Request $request, string $key): RedirectResponse
     {
         RateLimiter::hit($key, 60);

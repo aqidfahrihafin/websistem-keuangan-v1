@@ -42,14 +42,10 @@
                     </p>
                 </div>
                 <div class="mt-5 flex justify-end">
-                    <x-confirm-button
-                        action="deactivate"
-                        title="Akhiri Maintenance"
-                        message="Pastikan migration, pemeriksaan database, dan pengujian dasar sudah selesai. Akses transaksi akan langsung dibuka kembali."
-                        confirmText="Ya, Buka Akses"
-                        variant="warning"
-                        class="btn-primary"
-                    >Akhiri Maintenance</x-confirm-button>
+                    <form method="POST" action="{{ route('maintenance.end') }}">
+                        @csrf
+                        <button type="submit" class="btn-primary">Akhiri Maintenance</button>
+                    </form>
                 </div>
             @else
                 <form wire:submit="activate" class="mt-5 space-y-5">
