@@ -10,7 +10,7 @@
         <x-alert-banner type="error" message="Belum ada akun dengan role pengasuh. Pengajuan dapat dibuat tetapi tidak akan bisa diaktifkan sebelum akun approver tersedia." />
     @endif
 
-    @if ($pengajuanTerakhir)
+    @if ($pengajuanTerakhir && in_array($pengajuanTerakhir->status, ['pending', 'rejected'], true))
         <div class="card flex flex-col gap-3 p-4! sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <p class="text-xs text-slate-500">Pengajuan terakhir #{{ $pengajuanTerakhir->id }}</p>

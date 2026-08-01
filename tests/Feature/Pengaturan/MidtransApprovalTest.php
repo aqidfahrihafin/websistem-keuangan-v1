@@ -52,6 +52,10 @@ it('lets a pengasuh approve and atomically activate a pending request', function
         ->and($approval->fresh()->reviewed_by)->toBe($pengasuh->id)
         ->and(app(MidtransSettingsService::class)->serverKey())->toBe('server-baru')
         ->and(app(MidtransSettingsService::class)->isProduction())->toBeTrue();
+
+    Livewire::actingAs($admin)->test(Midtrans::class)
+        ->assertDontSee('Pengajuan terakhir #'.$approval->id)
+        ->assertDontSee('APPROVED');
 });
 
 it('requires the pengasuh password and a reason to reject', function () {
