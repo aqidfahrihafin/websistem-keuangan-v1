@@ -10,4 +10,14 @@
         <x-stat-card label="Tagihan belum lunas" :value="number_format($tagihanBelumLunas)" hint="Tagihan yang masih perlu diselesaikan." tone="amber" icon="receipt" />
         <x-stat-card label="Transaksi hari ini" :value="number_format($transaksiHariIni)" hint="Jumlah aktivitas transaksi sejak pukul 00.00." tone="emerald" icon="activity" />
     </div>
+
+    @if ($persetujuanMidtrans > 0)
+        <a href="{{ route('pengasuh.persetujuan-midtrans') }}" wire:navigate class="card flex items-center justify-between gap-4 border-amber-200 bg-amber-50 p-5! transition hover:border-amber-300">
+            <div>
+                <p class="font-semibold text-amber-900">{{ $persetujuanMidtrans }} perubahan Midtrans menunggu persetujuan</p>
+                <p class="mt-1 text-sm text-amber-700">Periksa perubahan kredensial, mode, biaya, dan batas transaksi sebelum kedaluwarsa.</p>
+            </div>
+            <span class="text-2xl text-amber-600">›</span>
+        </a>
+    @endif
 </div>

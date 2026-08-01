@@ -4,6 +4,7 @@ use App\Livewire\Admin\Pengaturan\Midtrans;
 use App\Services\MidtransFeeService;
 use App\Services\SaldoFloorService;
 use App\Services\TopupWaliService;
+use App\Models\MidtransSettingApproval;
 use Livewire\Livewire;
 
 it('falls back to a default minimal saldo floor when no admin setting has been saved yet', function () {
@@ -18,7 +19,7 @@ it('persists the minimal saldo floor and reads it back through the service', fun
     expect($service->minimal())->toBe(50000);
 });
 
-it('lets an admin update the minimal saldo floor through the Pengaturan Midtrans form', function () {
+it('lets an admin propose a minimal saldo floor change without activating it', function () {
     $admin = makeUserWithRole('admin');
 
     Livewire::actingAs($admin)->test(Midtrans::class)
@@ -30,7 +31,8 @@ it('lets an admin update the minimal saldo floor through the Pengaturan Midtrans
         ->call('simpan')
         ->assertHasNoErrors();
 
-    expect(app(SaldoFloorService::class)->minimal())->toBe(50000);
+    expect(app(SaldoFloorService::class)->minimal())->toBe(100000)
+        ->and(MidtransSettingApproval::first()->payload['minimal_saldo'])->toBe(50000);
 });
 
 it('requires a non-negative integer for the minimal saldo floor', function () {
@@ -59,13 +61,7 @@ it('rejects saving Midtrans settings without the correct account password', func
 
 it('keeps the existing server key when the field is left blank on save', function () {
     $admin = makeUserWithRole('admin');
-
-    Livewire::actingAs($admin)->test(Midtrans::class)
-        ->set('server_key', 'original-server-key')
-        ->set('client_key', 'test-client-key')
-        ->set('password_confirmasi', 'password')
-        ->call('simpan')
-        ->assertHasNoErrors();
+    app(App\Services\MidtransSettingsService::class)->save('original-server-key', 'test-client-key', false);
 
     Livewire::actingAs($admin)->test(Midtrans::class)
         ->assertSet('has_server_key', true)
@@ -75,7 +71,8 @@ it('keeps the existing server key when the field is left blank on save', functio
         ->call('simpan')
         ->assertHasNoErrors();
 
-    expect(app(App\Services\MidtransSettingsService::class)->serverKey())->toBe('original-server-key');
+    expect(app(App\Services\MidtransSettingsService::class)->serverKey())->toBe('original-server-key')
+        ->and(MidtransSettingApproval::first()->payload['server_key'])->toBe('original-server-key');
 });
 
 it('defaults the Midtrans fee schedule to pondok-absorbed with zero fees on every channel', function () {
@@ -90,7 +87,7 @@ it('defaults the Midtrans fee schedule to pondok-absorbed with zero fees on ever
         ->assertSet('biaya_qris_nilai', 0.0);
 });
 
-it('lets an admin configure and persist the Midtrans fee schedule', function () {
+it('lets an admin propose a Midtrans fee schedule without activating it', function () {
     $admin = makeUserWithRole('admin');
 
     Livewire::actingAs($admin)->test(Midtrans::class)
@@ -108,10 +105,10 @@ it('lets an admin configure and persist the Midtrans fee schedule', function () 
 
     $feeService = app(MidtransFeeService::class);
 
-    expect($feeService->dibebankanWali(untukTagihan: false))->toBeTrue()
+    expect($feeService->dibebankanWali(untukTagihan: false))->toBeFalse()
         ->and($feeService->dibebankanWali(untukTagihan: true))->toBeFalse()
-        ->and($feeService->hitungBiaya(TopupWaliService::METODE_BNI_VA, 100000))->toBe(4000)
-        ->and($feeService->hitungBiaya(TopupWaliService::METODE_QRIS, 100000))->toBe(700);
+        ->and($feeService->hitungBiaya(TopupWaliService::METODE_BNI_VA, 100000))->toBe(0)
+        ->and(MidtransSettingApproval::first()->payload['channels'][TopupWaliService::METODE_QRIS]['nilai'])->toBe(0.7);
 });
 
 it('rejects a percentage fee above 100', function () {
@@ -137,8 +134,8 @@ it('sets a page-level success message immediately after saving, not via a sessio
         ->set('password_confirmasi', 'password')
         ->call('simpan')
         ->assertHasNoErrors()
-        ->assertSet('statusMessage', 'Pengaturan Midtrans berhasil disimpan.')
-        ->assertSee('Pengaturan Midtrans berhasil disimpan.');
+        ->assertSet('statusMessage', 'Pengajuan perubahan berhasil dikirim dan menunggu persetujuan pengasuh.')
+        ->assertSee('menunggu persetujuan pengasuh');
 });
 
 it('sets a page-level error message when the account password is wrong', function () {
@@ -166,7 +163,7 @@ it('sets a page-level error message when Server Key is required but left blank o
         ->assertSet('errorMessage', 'Gagal menyimpan. Server Key wajib diisi.');
 });
 
-it('snapshots the saved fee schedule separately from in-progress form edits, refreshing only after a successful save', function () {
+it('keeps the saved fee snapshot unchanged while a proposed edit awaits approval', function () {
     $admin = makeUserWithRole('admin');
 
     app(MidtransFeeService::class)->save(true, true, [
@@ -190,5 +187,5 @@ it('snapshots the saved fee schedule separately from in-progress form edits, ref
         ->set('password_confirmasi', 'password')
         ->call('simpan')
         ->assertHasNoErrors()
-        ->assertSet('biayaTersimpan.bni_va.nilai', 9999.0);
+        ->assertSet('biayaTersimpan.bni_va.nilai', 4000.0);
 });

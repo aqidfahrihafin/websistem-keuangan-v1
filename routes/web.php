@@ -131,6 +131,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin/backup')->name('admin.b
 
 Route::middleware(['auth', 'role:pengasuh'])->prefix('pengasuh')->name('pengasuh.')->group(function () {
     Route::livewire('/', 'pengasuh.dashboard')->name('dashboard');
+    Route::livewire('/persetujuan-midtrans', 'pengasuh.persetujuan-midtrans')->name('persetujuan-midtrans');
     Route::livewire('/laporan-santri', 'pengasuh.laporan-santri')->name('laporan');
     Route::get('/laporan-santri-export/excel', [ReportController::class, 'laporanSantriExcel'])->name('laporan.export.excel');
     Route::get('/laporan-santri-export/pdf', [ReportController::class, 'laporanSantriPdf'])->name('laporan.export.pdf');

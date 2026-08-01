@@ -3,9 +3,11 @@
 namespace App\Livewire\Admin\Pengaturan;
 
 use App\Services\MidtransFeeService;
+use App\Services\MidtransApprovalService;
 use App\Services\MidtransSettingsService;
 use App\Services\SaldoFloorService;
 use App\Services\TopupWaliService;
+use App\Models\MidtransSettingApproval;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
@@ -111,7 +113,7 @@ class Midtrans extends Component
      * for backups) so there's an audit trail of who changed what and when -
      * without ever logging the secret values themselves.
      */
-    public function simpan(MidtransSettingsService $service, SaldoFloorService $saldoFloor, MidtransFeeService $feeService): void
+    public function simpan(MidtransSettingsService $service, MidtransApprovalService $approvals): void
     {
         $this->statusMessage = null;
         $this->errorMessage = null;
@@ -188,50 +190,44 @@ class Midtrans extends Component
             return;
         }
 
-        $serverKeyBerubah = filled($data['server_key']);
-        $serverKey = $serverKeyBerubah ? $data['server_key'] : $existingServerKey;
+        $serverKey = filled($data['server_key']) ? $data['server_key'] : $existingServerKey;
 
-        $service->save($serverKey, $data['client_key'], (bool) $data['is_production']);
-        $saldoFloor->simpan($data['minimal_saldo_bayar_tagihan']);
-        $saldoFloor->simpanMaksimalNominal($data['maksimal_nominal_transaksi']);
-        $feeService->save((bool) $data['biaya_dibebankan_wali_topup'], (bool) $data['biaya_dibebankan_wali_tagihan'], [
-            TopupWaliService::METODE_BNI_VA => ['tipe' => $data['biaya_bni_va_tipe'], 'nilai' => $data['biaya_bni_va_nilai']],
-            TopupWaliService::METODE_BCA_VA => ['tipe' => $data['biaya_bca_va_tipe'], 'nilai' => $data['biaya_bca_va_nilai']],
-            TopupWaliService::METODE_BRI_VA => ['tipe' => $data['biaya_bri_va_tipe'], 'nilai' => $data['biaya_bri_va_nilai']],
-            TopupWaliService::METODE_QRIS => ['tipe' => $data['biaya_qris_tipe'], 'nilai' => $data['biaya_qris_nilai']],
-        ]);
-
-        activity('pengaturan')
-            ->causedBy(Auth::user())
-            ->withProperties([
-                'server_key_diubah' => $serverKeyBerubah,
+        try {
+            $approvals->request(Auth::user(), [
+                'server_key' => $serverKey,
+                'client_key' => $data['client_key'],
                 'is_production' => (bool) $data['is_production'],
-                'minimal_saldo_bayar_tagihan' => $data['minimal_saldo_bayar_tagihan'],
-                'maksimal_nominal_transaksi' => $data['maksimal_nominal_transaksi'],
-                'biaya_dibebankan_wali_topup' => (bool) $data['biaya_dibebankan_wali_topup'],
-                'biaya_dibebankan_wali_tagihan' => (bool) $data['biaya_dibebankan_wali_tagihan'],
-                'biaya_bni_va' => [$data['biaya_bni_va_tipe'], $data['biaya_bni_va_nilai']],
-                'biaya_bca_va' => [$data['biaya_bca_va_tipe'], $data['biaya_bca_va_nilai']],
-                'biaya_bri_va' => [$data['biaya_bri_va_tipe'], $data['biaya_bri_va_nilai']],
-                'biaya_qris' => [$data['biaya_qris_tipe'], $data['biaya_qris_nilai']],
-            ])
-            ->log('Memperbarui pengaturan Midtrans');
+                'minimal_saldo' => $data['minimal_saldo_bayar_tagihan'],
+                'maksimal_nominal' => $data['maksimal_nominal_transaksi'],
+                'fee_wali_topup' => (bool) $data['biaya_dibebankan_wali_topup'],
+                'fee_wali_tagihan' => (bool) $data['biaya_dibebankan_wali_tagihan'],
+                'channels' => [
+                    TopupWaliService::METODE_BNI_VA => ['tipe' => $data['biaya_bni_va_tipe'], 'nilai' => (float) $data['biaya_bni_va_nilai']],
+                    TopupWaliService::METODE_BCA_VA => ['tipe' => $data['biaya_bca_va_tipe'], 'nilai' => (float) $data['biaya_bca_va_nilai']],
+                    TopupWaliService::METODE_BRI_VA => ['tipe' => $data['biaya_bri_va_tipe'], 'nilai' => (float) $data['biaya_bri_va_nilai']],
+                    TopupWaliService::METODE_QRIS => ['tipe' => $data['biaya_qris_tipe'], 'nilai' => (float) $data['biaya_qris_nilai']],
+                ],
+            ]);
+        } catch (\RuntimeException $e) {
+            $this->errorMessage = $e->getMessage();
+            return;
+        }
 
         $this->password_confirmasi = '';
         $this->server_key = null;
-        $this->has_server_key = true;
-
-        // Refreshes the "tersimpan saat ini" snapshot to the just-saved
-        // values immediately, without needing a fresh page load.
-        $this->biayaTersimpan = $feeService->semuaChannel();
-        $this->dibebankanWaliTopupTersimpan = (bool) $data['biaya_dibebankan_wali_topup'];
-        $this->dibebankanWaliTagihanTersimpan = (bool) $data['biaya_dibebankan_wali_tagihan'];
-
-        $this->statusMessage = 'Pengaturan Midtrans berhasil disimpan.';
+        $this->statusMessage = 'Pengajuan perubahan berhasil dikirim dan menunggu persetujuan pengasuh.';
     }
 
     public function render()
     {
-        return view('livewire.admin.pengaturan.midtrans', ['title' => 'Pengaturan Midtrans']);
+        return view('livewire.admin.pengaturan.midtrans', [
+            'title' => 'Pengaturan Midtrans',
+            'pengajuanTerakhir' => MidtransSettingApproval::query()
+                ->where('requested_by', Auth::id())
+                ->with('reviewer')
+                ->latest()
+                ->first(),
+            'jumlahPengasuh' => \App\Models\User::whereHas('roles', fn ($query) => $query->where('name', 'pengasuh'))->count(),
+        ]);
     }
 }

@@ -3,6 +3,30 @@
         Dipakai untuk top up saldo wali. Dapatkan Server Key dan Client Key dari <span class="font-medium">Midtrans Dashboard &rarr; Settings &rarr; Access Keys</span>. Gunakan kredensial Sandbox terlebih dahulu untuk uji coba sebelum mengaktifkan mode produksi.
     </x-warning-banner>
 
+    <x-warning-banner variant="warning" title="Perubahan memerlukan persetujuan pengasuh">
+        Nilai yang Anda kirim tidak langsung aktif. Pengaturan saat ini tetap digunakan sampai pengasuh menyetujui pengajuan dalam waktu 24 jam.
+    </x-warning-banner>
+    @if ($jumlahPengasuh === 0)
+        <x-alert-banner type="error" message="Belum ada akun dengan role pengasuh. Pengajuan dapat dibuat tetapi tidak akan bisa diaktifkan sebelum akun approver tersedia." />
+    @endif
+
+    @if ($pengajuanTerakhir)
+        <div class="card flex flex-col gap-3 p-4! sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <p class="text-xs text-slate-500">Pengajuan terakhir #{{ $pengajuanTerakhir->id }}</p>
+                <p class="mt-1 font-semibold text-slate-900">
+                    {{ match($pengajuanTerakhir->status) { 'pending' => 'Menunggu persetujuan pengasuh', 'approved' => 'Disetujui dan sudah aktif', 'rejected' => 'Ditolak pengasuh', 'expired' => 'Kedaluwarsa', default => 'Dibatalkan oleh pengajuan baru' } }}
+                </p>
+                @if ($pengajuanTerakhir->review_note)
+                    <p class="mt-1 text-xs text-slate-500">Catatan: {{ $pengajuanTerakhir->review_note }}</p>
+                @endif
+            </div>
+            <span class="badge {{ $pengajuanTerakhir->status === 'pending' ? 'bg-amber-100 text-amber-800' : ($pengajuanTerakhir->status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600') }}">
+                {{ strtoupper($pengajuanTerakhir->status) }}
+            </span>
+        </div>
+    @endif
+
     <x-alert-banner type="success" :message="$statusMessage" />
     <x-alert-banner type="error" :message="$errorMessage" />
 
@@ -289,7 +313,7 @@
         <div class="toolbar justify-end">
             <button type="submit" class="btn-primary">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7" /></svg>
-                Simpan Pengaturan
+                Ajukan Perubahan
             </button>
         </div>
     </form>

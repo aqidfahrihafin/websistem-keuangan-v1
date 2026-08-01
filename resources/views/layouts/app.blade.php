@@ -159,6 +159,7 @@
             'label' => null,
             'items' => [
                 ['route' => 'pengasuh.dashboard', 'match' => 'pengasuh.dashboard', 'label' => 'Dashboard', 'icon' => 'home'],
+                ['route' => 'pengasuh.persetujuan-midtrans', 'match' => 'pengasuh.persetujuan-midtrans', 'label' => 'Persetujuan Midtrans', 'icon' => 'credit-card'],
                 ['route' => 'pengasuh.laporan', 'match' => 'pengasuh.laporan', 'label' => 'Laporan Santri', 'icon' => 'document'],
             ],
         ]];
