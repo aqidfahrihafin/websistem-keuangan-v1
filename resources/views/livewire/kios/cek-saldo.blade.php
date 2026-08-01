@@ -129,6 +129,27 @@
                         Siap digunakan
                     </span>
 
+                    @if ($device && in_array($device->tipe, [\App\Models\Device::TIPE_KIOSK_SALDO, \App\Models\Device::TIPE_KIOSK_PENARIKAN], true))
+                        <div class="mx-auto mt-5 grid max-w-md grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-slate-950/15 p-2">
+                            <button
+                                type="button"
+                                wire:click="$set('layanan', 'saldo')"
+                                class="rounded-xl px-3 py-3 text-left transition {{ $layanan === 'saldo' ? 'bg-teal-300 text-teal-950 shadow-lg' : 'text-white/85 hover:bg-white/10' }}"
+                            >
+                                <span class="block text-xs font-semibold">Saldo &amp; Penarikan</span>
+                                <span class="mt-0.5 block text-[10px] opacity-75">Cek saldo atau tarik tunai</span>
+                            </button>
+                            <button
+                                type="button"
+                                wire:click="$set('layanan', 'tabungan')"
+                                class="rounded-xl px-3 py-3 text-left transition {{ $layanan === 'tabungan' ? 'bg-violet-300 text-violet-950 shadow-lg' : 'text-white/85 hover:bg-white/10' }}"
+                            >
+                                <span class="block text-xs font-semibold">Pindah ke Tabungan</span>
+                                <span class="mt-0.5 block text-[10px] opacity-75">Simpan dari saldo santri</span>
+                            </button>
+                        </div>
+                    @endif
+
                     <div class="relative mx-auto mt-6 flex h-32 w-32 items-center justify-center">
                         <span class="kios-modern-pulse absolute inset-1 rounded-full border border-teal-200/20 bg-teal-300/10"></span>
                         <span class="absolute inset-5 rounded-full border border-white/10 bg-white/8 backdrop-blur-md"></span>
@@ -141,7 +162,9 @@
 
                     <h2 class="mt-3 text-2xl font-semibold tracking-tight">Tempelkan kartu santri</h2>
                     <p class="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-teal-50/95">
-                        Cek saldo dan limit harian tanpa perlu masuk ke akun.
+                        {{ $layanan === 'tabungan'
+                            ? 'Kartu dipindai satu kali, lalu lanjutkan nominal dan sidik jari.'
+                            : 'Cek saldo dan limit harian tanpa perlu masuk ke akun.' }}
                     </p>
 
                     <div class="mt-5 flex items-center justify-center gap-2 text-xs font-medium text-teal-50/90">

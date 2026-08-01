@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-2xl space-y-6">
+<div class="content-stack mx-auto max-w-2xl">
     @if ($limitInfo)
         @php
             $kebijakan = $limitInfo['kebijakan'];

@@ -78,6 +78,7 @@
         <tr>
             <td><div class="box"><div class="label">Kas Pondok Saat Ini</div><div class="value">Rp {{ number_format($leger['kas_saat_ini'], 0, ',', '.') }}</div></div></td>
             <td><div class="box"><div class="label">&minus; Titipan Saldo Santri</div><div class="value" style="color:#b45309;">Rp {{ number_format($leger['saldo_santri_saat_ini'], 0, ',', '.') }}</div></div></td>
+            <td><div class="box"><div class="label">&minus; Titipan Tabungan Santri</div><div class="value" style="color:#7c3aed;">Rp {{ number_format($leger['saldo_tabungan_saat_ini'], 0, ',', '.') }}</div></div></td>
             <td><div class="box"><div class="label">&minus; Titipan Saldo Kantin</div><div class="value" style="color:#b45309;">Rp {{ number_format($leger['saldo_kantin_belum_cair'], 0, ',', '.') }}</div></div></td>
             <td><div class="box highlight"><div class="label">= Uang Milik Pondok</div><div class="value">Rp {{ number_format($leger['uang_milik_pondok'], 0, ',', '.') }}</div></div></td>
         </tr>

@@ -21,6 +21,12 @@ class UserSeeder extends Seeder
         );
         $bendahara->syncRoles(['bendahara']);
 
+        $petugas = User::firstOrCreate(
+            ['email' => 'petugas.kios@pesantren.test'],
+            ['name' => 'Petugas Kios', 'password' => 'password']
+        );
+        $petugas->syncRoles(['petugas_kios']);
+
         $pengasuh = User::firstOrCreate(
             ['email' => 'pengasuh@pesantren.test'],
             ['name' => 'Pengasuh Pondok', 'password' => 'password']

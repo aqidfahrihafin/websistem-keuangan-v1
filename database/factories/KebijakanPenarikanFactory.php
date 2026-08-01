@@ -12,8 +12,10 @@ class KebijakanPenarikanFactory extends Factory
 {
     public function definition(): array
     {
+        $faker = \Faker\Factory::create();
+
         return [
-            'nama' => 'Kebijakan '.fake()->word(),
+            'nama' => 'Kebijakan '.$faker->word(),
             'jam_mulai' => '08:00:00',
             'jam_selesai' => '15:00:00',
             'limit_harian' => 50000,

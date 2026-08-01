@@ -63,7 +63,7 @@ class Index extends Component
     public function render()
     {
         $santris = Santri::query()
-            ->with(['keluarga', 'lembaga', 'kamar', 'kategoriDiskon'])
+            ->with(['keluarga', 'lembaga', 'rayon', 'kamar', 'kategoriDiskon'])
             ->when($this->search, fn ($q) => $q->where(function ($q) {
                     $q->where('nama', 'like', "%{$this->search}%")
                     ->orWhere('nis', 'like', "%{$this->search}%")

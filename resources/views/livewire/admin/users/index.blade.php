@@ -1,120 +1,52 @@
-<div>
-    <div class="toolbar mb-4 sm:justify-between">
-        <div class="flex flex-col gap-2 sm:flex-row">
-            <x-search-input wire:model.live.debounce.300ms="search" placeholder="Cari nama/email/NIS..." />
+@php
+    $roleLabels = ['admin'=>'Admin Sistem','bendahara'=>'Bendahara','admin_lembaga'=>'Admin Lembaga','admin_rayon'=>'Admin Rayon','petugas_kios'=>'Petugas Kios','pengasuh'=>'Pengasuh','wali'=>'Wali Santri','santri'=>'Santri'];
+    $roleTones = ['admin'=>'bg-violet-50 text-violet-700','bendahara'=>'bg-emerald-50 text-emerald-700','admin_lembaga'=>'bg-sky-50 text-sky-700','admin_rayon'=>'bg-teal-50 text-teal-700','petugas_kios'=>'bg-amber-50 text-amber-700','pengasuh'=>'bg-indigo-50 text-indigo-700','wali'=>'bg-rose-50 text-rose-700','santri'=>'bg-slate-100 text-slate-700'];
+@endphp
+<div class="content-stack">
+    <section class="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm sm:px-6">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div><h2 class="text-lg font-bold tracking-tight text-slate-950">Pengguna dan hak akses</h2><p class="mt-1 text-sm text-slate-500">Kelola akun staf, wali, santri, serta penugasan lembaga dan rayon.</p></div>
+            <div class="grid grid-cols-4 divide-x divide-slate-200 rounded-xl bg-slate-50 px-2 py-2 text-center sm:min-w-96">
+                @foreach([['Total',$totalPengguna],['Staf',$totalStaf],['Wali',$totalWali],['Akun unit',$totalAkunUnit]] as [$label,$value])<div class="px-2"><p class="text-lg font-bold text-slate-900">{{ number_format($value) }}</p><p class="text-[9px] font-semibold uppercase tracking-wide text-slate-500">{{ $label }}</p></div>@endforeach
+            </div>
         </div>
-        <button type="button" wire:click="openCreate" class="btn-primary shrink-0">Tambah Pengguna</button>
+    </section>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div class="min-w-0 flex-1"><x-search-input wire:model.live.debounce.300ms="search" placeholder="Cari nama, email, NIS, atau nomor HP..." /></div>
+            <select wire:model.live="filterRole" class="field-input lg:w-52" aria-label="Filter role pengguna"><option value="">Semua role</option>@foreach($roles as $r)<option value="{{ $r }}">{{ $roleLabels[$r] ?? ucfirst($r) }}</option>@endforeach</select>
+            <button type="button" wire:click="openCreate" class="btn-primary inline-flex shrink-0 items-center justify-center gap-2"><span class="text-lg leading-none">+</span> Tambah Pengguna</button>
+        </div>
     </div>
 
-    <div class="table-card">
-        <table class="min-w-full divide-y divide-slate-200 text-sm">
-            <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
-                <tr>
-                    <th class="px-4 py-3">Nama</th>
-                    <th class="px-4 py-3">Email / NIS</th>
-                    <th class="px-4 py-3">No. KK</th>
-                    <th class="px-4 py-3">Role</th>
-                    <th class="px-4 py-3"></th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-                @forelse ($users as $user)
-                    <tr wire:key="user-{{ $user->id }}">
-                        <td class="px-4 py-3">{{ $user->name }}</td>
-                        <td class="px-4 py-3">{{ $user->email ?? $user->nis }}</td>
-                        <td class="px-4 py-3">{{ $user->no_kk ?? '-' }}</td>
-                        <td class="px-4 py-3">{{ $user->roles->pluck('name')->join(', ') ?: '-' }}</td>
-                        <td class="px-4 py-3 text-right">
-                            <button type="button" wire:click="openEdit({{ $user->id }})" class="btn-link">Ubah</button>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="p-4">
-                            <x-empty-state
-                                :title="trim($search) !== '' ? 'Tidak ada pengguna yang cocok' : 'Belum ada pengguna'"
-                                :description="trim($search) !== '' ? 'Coba kata kunci nama, email, atau NIS yang lain.' : 'Akun pengguna yang ditambahkan akan muncul di sini.'"
-                            />
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+    <section class="table-card overflow-hidden">
+        <div class="hidden overflow-x-auto lg:block"><table class="min-w-full divide-y divide-slate-100 text-sm">
+            <thead class="bg-slate-50/80 text-left text-[10px] font-bold uppercase tracking-[.1em] text-slate-500"><tr><th class="px-5 py-3">Pengguna</th><th class="px-5 py-3">Kontak / Identitas</th><th class="px-5 py-3">Hak akses</th><th class="px-5 py-3">Unit tertaut</th><th class="w-20 px-5 py-3 text-right">Aksi</th></tr></thead>
+            <tbody class="divide-y divide-slate-100 bg-white">@forelse($users as $user) @php $r=$user->roles->first()?->name; $units=$r==='admin_lembaga'?$user->lembagasDikelola:($r==='admin_rayon'?$user->rayonsDikelola:collect()); @endphp
+                <tr wire:key="user-{{ $user->id }}" class="transition hover:bg-slate-50/70"><td class="px-5 py-4"><div class="flex items-center gap-3"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white">{{ mb_strtoupper(mb_substr($user->name,0,1)) }}</span><div class="min-w-0"><p class="truncate font-semibold text-slate-900">{{ $user->name }}</p><p class="mt-0.5 text-xs text-slate-500">ID #{{ $user->id }}</p></div></div></td><td class="px-5 py-4"><p class="font-medium text-slate-700">{{ $user->email ?? ($user->nis ? 'NIS '.$user->nis : 'Belum ada email/NIS') }}</p><p class="mt-0.5 text-xs text-slate-500">{{ $user->phone ?: ($user->no_kk ? 'KK '.$user->no_kk : 'Kontak belum dilengkapi') }}</p></td><td class="px-5 py-4"><span class="badge {{ $roleTones[$r] ?? 'bg-slate-100 text-slate-600' }}">{{ $roleLabels[$r] ?? ($r ?: 'Tanpa role') }}</span></td><td class="px-5 py-4">@if($units->isNotEmpty())<div class="flex max-w-sm flex-wrap gap-1.5">@foreach($units->take(2) as $unit)<span class="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">{{ $unit->nama }}</span>@endforeach @if($units->count()>2)<span class="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-500">+{{ $units->count()-2 }}</span>@endif</div>@else<span class="text-xs text-slate-400">Tidak memerlukan unit</span>@endif</td><td class="px-5 py-4 text-right"><button type="button" wire:click="openEdit({{ $user->id }})" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700" aria-label="Ubah {{ $user->name }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="m15 5 4 4M4 20l4.5-1 10-10a2.8 2.8 0 0 0-4-4l-10 10L4 20Z" /></svg></button></td></tr>
+            @empty<tr><td colspan="5" class="p-6"><x-empty-state title="Pengguna tidak ditemukan" :description="trim($search)!=='' || $filterRole!=='' ? 'Coba ubah pencarian atau filter role.' : 'Tambahkan pengguna pertama untuk mulai mengatur akses.'" /></td></tr>@endforelse</tbody>
+        </table></div>
+
+        <div class="divide-y divide-slate-100 lg:hidden">@forelse($users as $user) @php $r=$user->roles->first()?->name; $units=$r==='admin_lembaga'?$user->lembagasDikelola:($r==='admin_rayon'?$user->rayonsDikelola:collect()); @endphp
+            <article class="p-4"><div class="flex items-start gap-3"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white">{{ mb_strtoupper(mb_substr($user->name,0,1)) }}</span><div class="min-w-0 flex-1"><div class="flex items-start justify-between gap-2"><div class="min-w-0"><h3 class="truncate font-semibold text-slate-900">{{ $user->name }}</h3><p class="truncate text-xs text-slate-500">{{ $user->email ?? ($user->nis ? 'NIS '.$user->nis : 'Identitas belum lengkap') }}</p></div><button type="button" wire:click="openEdit({{ $user->id }})" class="btn-link shrink-0">Ubah</button></div><div class="mt-3 flex flex-wrap gap-1.5"><span class="badge {{ $roleTones[$r] ?? 'bg-slate-100 text-slate-600' }}">{{ $roleLabels[$r] ?? ($r ?: 'Tanpa role') }}</span>@foreach($units as $unit)<span class="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-600">{{ $unit->nama }}</span>@endforeach</div></div></div></article>
+        @empty<div class="p-5"><x-empty-state title="Pengguna tidak ditemukan" :description="trim($search)!=='' || $filterRole!=='' ? 'Coba ubah pencarian atau filter role.' : 'Tambahkan pengguna pertama untuk mulai mengatur akses.'" /></div>@endforelse</div>
         {{ $users->links('vendor.pagination.table-footer') }}
-    </div>
+    </section>
 
-    <x-modal show="showModal" :title="$editing ? 'Ubah Pengguna' : 'Tambah Pengguna'" max-width="lg">
-        <form wire:submit="save" class="space-y-5">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <x-form-field label="Nama" required :error="$errors->first('name')">
-                    <input type="text" wire:model="name" class="field-input">
-                </x-form-field>
-                <x-form-field label="Role" required :error="$errors->first('role')">
-                    <select wire:model.live="role" class="field-input">
-                        <option value="">Pilih role</option>
-                        @foreach ($roles as $r)
-                            <option value="{{ $r }}">{{ $r }}</option>
-                        @endforeach
-                    </select>
-                </x-form-field>
-            </div>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <x-form-field label="Email (staf/wali)" :error="$errors->first('email')">
-                    <input type="email" wire:model="email" class="field-input">
-                </x-form-field>
-                <x-form-field label="NIS (santri)" :error="$errors->first('nis')">
-                    <input type="text" wire:model="nis" class="field-input">
-                </x-form-field>
-                <x-form-field label="No. KK (untuk role wali)" :error="$errors->first('no_kk')" hint="{{ $role === 'wali' ? 'Otomatis dicek begitu selesai diketik.' : null }}">
-                    <input type="text" wire:model.blur="no_kk" maxlength="16" class="field-input">
-                </x-form-field>
-                <x-form-field label="No. HP">
-                    <input type="text" wire:model="phone" class="field-input">
-                </x-form-field>
-            </div>
+    <x-modal show="showModal" :title="$editing ? 'Ubah Pengguna' : 'Tambah Pengguna'" description="Lengkapi identitas, hak akses, dan unit kerja pengguna." max-width="2xl">
+        <form wire:submit="save" class="space-y-6">
+            <section><div class="mb-3"><h4 class="text-sm font-semibold text-slate-900">Identitas akun</h4><p class="mt-0.5 text-xs text-slate-500">Nama dan role menentukan ruang kerja pengguna setelah masuk.</p></div><div class="grid gap-4 sm:grid-cols-2"><x-form-field label="Nama lengkap" required :error="$errors->first('name')"><input wire:model="name" class="field-input" autocomplete="name"></x-form-field><x-form-field label="Role" required :error="$errors->first('role')"><select wire:model.live="role" class="field-input"><option value="">Pilih hak akses</option>@foreach($roles as $r)<option value="{{ $r }}">{{ $roleLabels[$r] ?? ucfirst($r) }}</option>@endforeach</select></x-form-field></div></section>
 
-            @if ($role === 'wali' && $no_kk)
-                @if ($keluargaDitemukan)
-                    <x-warning-banner variant="info" title="No. KK ditemukan">
-                        Akan otomatis tertaut ke keluarga <strong>{{ $keluargaDitemukan->nama_kepala_keluarga }}</strong>, santri:
-                        @forelse ($keluargaDitemukan->santris as $santri)
-                            {{ $santri->nama }}{{ ! $loop->last ? ',' : '' }}
-                        @empty
-                            <em>belum ada santri di keluarga ini.</em>
-                        @endforelse
-                    </x-warning-banner>
-                @else
-                    <x-warning-banner variant="warning" title="No. KK belum terdaftar">
-                        Belum ada data keluarga dengan No. KK ini, jadi wali belum akan tertaut ke santri manapun. Tambahkan dulu di halaman <a href="{{ route('admin.keluarga.index') }}" class="underline" target="_blank">Keluarga</a>, atau lengkapi No. KK santrinya terlebih dahulu.
-                    </x-warning-banner>
-                @endif
-            @endif
+            @if(in_array($role,['admin_lembaga','admin_rayon']))<section class="rounded-xl border border-teal-100 bg-teal-50/50 p-4"><div class="mb-3"><h4 class="text-sm font-semibold text-teal-950">Penugasan {{ $role==='admin_lembaga'?'lembaga':'rayon' }}</h4><p class="mt-0.5 text-xs text-teal-700">Pilih satu atau beberapa unit. Pengguna tidak dapat melihat data di luar pilihan ini.</p></div><x-form-field :label="$role==='admin_lembaga'?'Lembaga yang dikelola':'Rayon yang dikelola'" required :error="$errors->first($role==='admin_lembaga'?'lembaga_ids':'rayon_ids')"><select wire:model="{{ $role==='admin_lembaga'?'lembaga_ids':'rayon_ids' }}" multiple size="4" class="field-input bg-white">@foreach($role==='admin_lembaga'?$lembagas:$rayons as $unit)<option value="{{ $unit->id }}">{{ $unit->nama }}</option>@endforeach</select></x-form-field><p class="mt-2 text-xs text-teal-700">Gunakan Ctrl/Command untuk memilih lebih dari satu unit.</p></section>@endif
 
-            <x-form-field :label="$editing ? 'Kata Sandi (kosongkan jika tidak diubah)' : 'Kata Sandi'" :error="$errors->first('password')">
-                <input type="password" wire:model="password" class="field-input">
-            </x-form-field>
+            <section><div class="mb-3"><h4 class="text-sm font-semibold text-slate-900">Informasi login dan kontak</h4><p class="mt-0.5 text-xs text-slate-500">Isi hanya identitas yang sesuai dengan jenis akun.</p></div><div class="grid gap-4 sm:grid-cols-2"><x-form-field label="Email" :error="$errors->first('email')"><input type="email" wire:model="email" class="field-input" autocomplete="email"></x-form-field><x-form-field label="Nomor HP"><input wire:model="phone" class="field-input" inputmode="tel"></x-form-field>@if($role==='santri')<x-form-field label="NIS" :error="$errors->first('nis')"><input wire:model="nis" class="field-input"></x-form-field>@endif @if($role==='wali')<x-form-field label="Nomor KK" :error="$errors->first('no_kk')" hint="16 digit, digunakan untuk menautkan keluarga."><input wire:model.blur="no_kk" maxlength="16" class="field-input" inputmode="numeric"></x-form-field>@endif</div></section>
 
-            @if ($editing && $editing->hasPin())
-                <div class="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
-                    <div>
-                        <p class="text-sm font-medium text-slate-700">PIN Transaksi</p>
-                        <p class="text-xs text-slate-500">Sudah diatur. Reset jika wali lupa PIN-nya - wali akan diminta membuat PIN baru saat transaksi berikutnya.</p>
-                    </div>
-                    <x-confirm-button
-                        action="resetPin({{ $editing->id }})"
-                        title="Reset PIN Transaksi"
-                        message="PIN transaksi {{ $editing->name }} akan dihapus. Wali harus membuat PIN baru sebelum bisa bertransaksi lagi lewat aplikasi mobile."
-                        confirmText="Ya, Reset PIN"
-                        variant="warning"
-                        class="btn-secondary shrink-0"
-                    >Reset PIN</x-confirm-button>
-                </div>
-            @endif
+            @if($role==='wali' && $no_kk)<div>@if($keluargaDitemukan)<x-warning-banner variant="info" title="Keluarga ditemukan">Akun akan ditautkan ke keluarga <strong>{{ $keluargaDitemukan->nama_kepala_keluarga }}</strong>. Santri: @forelse($keluargaDitemukan->santris as $santri)<strong>{{ $santri->nama }}</strong>{{ !$loop->last ? ', ' : '.' }}@empty belum ada santri dalam keluarga ini.@endforelse</x-warning-banner>@else<x-warning-banner variant="warning" title="Nomor KK belum terdaftar">Tambahkan keluarga atau lengkapi Nomor KK santri terlebih dahulu.</x-warning-banner>@endif</div>@endif
 
-            <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                <button type="button" wire:click="$set('showModal', false)" class="btn-secondary">Batal</button>
-                <button type="submit" class="btn-primary">Simpan</button>
-            </div>
+            <section class="border-t border-slate-100 pt-5"><x-form-field :label="$editing?'Kata sandi baru':'Kata sandi awal'" :error="$errors->first('password')" :hint="$editing?'Kosongkan jika tidak ingin mengubah kata sandi.':'Minimal 8 karakter.'"><input type="password" wire:model="password" class="field-input" autocomplete="new-password"></x-form-field></section>
+            @if($editing && $editing->hasPin())<div class="flex flex-col gap-3 rounded-xl border border-amber-100 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p class="text-sm font-semibold text-amber-900">PIN transaksi aktif</p><p class="mt-1 text-xs text-amber-700">Reset hanya jika wali benar-benar lupa PIN.</p></div><x-confirm-button action="resetPin({{ $editing->id }})" title="Reset PIN Transaksi" message="PIN transaksi {{ $editing->name }} akan dihapus." confirmText="Ya, Reset PIN" variant="warning" class="btn-secondary shrink-0">Reset PIN</x-confirm-button></div>@endif
+            <div class="sticky bottom-0 -mx-1 flex justify-end gap-2 border-t border-slate-100 bg-white/95 px-1 pt-4 backdrop-blur"><button type="button" wire:click="$set('showModal', false)" class="btn-secondary">Batal</button><button type="submit" class="btn-primary">{{ $editing?'Simpan Perubahan':'Buat Pengguna' }}</button></div>
         </form>
     </x-modal>
 </div>

@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Models\Lembaga;
+use App\Models\RekeningTabungan;
 use App\Models\SaldoSantri;
 use App\Models\TagihanPembayaran;
 use App\Models\TopupWali;
 use App\Models\Transaksi;
+use App\Models\TransaksiTabungan;
 use App\Models\UnitUsaha;
 use App\Models\UnitUsahaPenarikan;
 use Illuminate\Support\Carbon;
@@ -139,12 +141,16 @@ class LegerKasPondokService
             ->sum('saldo');
 
         $saldoKantin = $lembagaId ? 0 : (int) UnitUsaha::sum('saldo_unit');
+        $saldoTabungan = (int) RekeningTabungan::query()
+            ->when($lembagaId, fn ($q) => $q->whereHas('santri', fn ($q) => $q->where('lembaga_id', $lembagaId)))
+            ->sum('saldo');
 
         return [
             'kas_saat_ini' => $kasSaatIni,
             'saldo_santri_saat_ini' => $saldoSantri,
+            'saldo_tabungan_saat_ini' => $saldoTabungan,
             'saldo_kantin_belum_cair' => $saldoKantin,
-            'uang_milik_pondok' => $kasSaatIni - $saldoSantri - $saldoKantin,
+            'uang_milik_pondok' => $kasSaatIni - $saldoSantri - $saldoTabungan - $saldoKantin,
         ];
     }
 
@@ -166,6 +172,7 @@ class LegerKasPondokService
             $entri = $entri
                 ->merge($this->entriTopupTunai($dari, $sampai, $lembagaId))
                 ->merge($this->entriTagihanTunaiLangsung($dari, $sampai, $lembagaId))
+                ->merge($this->entriSetoranTabunganTunai($dari, $sampai, $lembagaId))
                 ->merge($this->entriPenarikanTunai($dari, $sampai, $lembagaId));
 
             if (! $lembagaId) {
@@ -235,6 +242,27 @@ class LegerKasPondokService
             ]);
     }
 
+    private function entriSetoranTabunganTunai(?Carbon $dari, Carbon $sampai, ?int $lembagaId): Collection
+    {
+        return TransaksiTabungan::query()
+            ->where('jenis', TransaksiTabungan::JENIS_SETORAN_TUNAI)
+            ->where('status', Transaksi::STATUS_BERHASIL)
+            ->when($dari, fn ($q) => $q->where('created_at', '>=', $dari))
+            ->where('created_at', '<=', $sampai)
+            ->when($lembagaId, fn ($q) => $q->whereHas('rekening.santri', fn ($q) => $q->where('lembaga_id', $lembagaId)))
+            ->with(['rekening.santri:id,nama', 'sesiKas:id,nomor'])
+            ->get()
+            ->map(fn (TransaksiTabungan $transaksi) => [
+                'tanggal' => $transaksi->created_at,
+                'jenis' => 'Setoran Tunai Tabungan',
+                'keterangan' => 'Setoran tunai melalui sesi kas '.($transaksi->sesiKas?->nomor ?? '-'),
+                'pihak' => $transaksi->rekening?->santri?->nama ?? '(santri dihapus)',
+                'sumber_dana' => self::SUMBER_TUNAI,
+                'masuk' => (int) $transaksi->nominal,
+                'keluar' => 0,
+            ]);
+    }
+
     private function entriTagihanTunaiLangsung(?Carbon $dari, Carbon $sampai, ?int $lembagaId): Collection
     {
         return TagihanPembayaran::query()
@@ -290,6 +318,10 @@ class LegerKasPondokService
      */
     private function jenisTopupWali(TopupWali $t): string
     {
+        if ($t->tujuan === TopupWali::TUJUAN_TABUNGAN) {
+            return 'Setoran Tabungan via Midtrans';
+        }
+
         $bayarTagihan = (int) $t->nominal_potongan_tagihan;
         $keSaldo = (int) $t->nominal_ke_saldo;
         $namaTagihan = $t->tagihan?->jenisTagihan?->nama;

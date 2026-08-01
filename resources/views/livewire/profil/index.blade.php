@@ -5,14 +5,41 @@
         </x-warning-banner>
     @endif
 
-    <div class="card flex items-center gap-4">
-        <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-teal-700 text-lg font-semibold text-white">
-            {{ strtoupper(substr($user->name, 0, 1)) }}
+    <div class="card flex flex-col gap-5 sm:flex-row sm:items-center">
+        <div class="flex min-w-0 flex-1 items-center gap-4">
+            <div class="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-teal-700 text-white ring-4 ring-teal-50">
+                @if ($photo)
+                    <img src="{{ $photo->temporaryUrl() }}" alt="Pratinjau foto profil" class="h-full w-full object-cover">
+                @elseif ($user->avatar_path)
+                    <img src="{{ Storage::disk('public')->url($user->avatar_path) }}" alt="Foto profil {{ $user->name }}" class="h-full w-full object-cover">
+                @else
+                    <span class="flex h-full w-full items-center justify-center text-xl font-semibold">
+                        {{ strtoupper(substr($user->name, 0, 1)) }}
+                    </span>
+                @endif
+            </div>
+            <div class="min-w-0">
+                <p class="truncate text-base font-semibold text-slate-900">{{ $user->name }}</p>
+                <p class="truncate text-sm capitalize text-slate-500">{{ $user->roles->first()?->name }}</p>
+                <p class="mt-1 text-xs text-slate-400">JPG, PNG, atau WebP · Maksimal 1 MB</p>
+            </div>
         </div>
-        <div class="min-w-0">
-            <p class="truncate text-base font-semibold text-slate-900">{{ $user->name }}</p>
-            <p class="truncate text-sm capitalize text-slate-500">{{ $user->roles->first()?->name }}</p>
-        </div>
+        <form wire:submit="simpanFoto" class="flex shrink-0 flex-wrap items-center gap-2">
+            <label class="btn-secondary cursor-pointer">
+                <span wire:loading.remove wire:target="photo">Pilih Foto</span>
+                <span wire:loading wire:target="photo">Menyiapkan...</span>
+                <input type="file" wire:model="photo" accept="image/jpeg,image/png,image/webp" class="sr-only">
+            </label>
+            @if ($photo)
+                <button type="submit" class="btn-primary" wire:loading.attr="disabled" wire:target="simpanFoto">
+                    <span wire:loading.remove wire:target="simpanFoto">Simpan Foto</span>
+                    <span wire:loading wire:target="simpanFoto">Mengunggah...</span>
+                </button>
+            @endif
+            @error('photo')
+                <p class="w-full text-xs text-red-600">{{ $message }}</p>
+            @enderror
+        </form>
     </div>
 
     <x-form-section title="Informasi Profil" description="Data ini tampil di sidebar & dipakai untuk komunikasi terkait akun Anda.">

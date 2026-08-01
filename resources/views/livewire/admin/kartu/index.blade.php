@@ -1,4 +1,4 @@
-<div class="space-y-5">
+<div class="content-stack">
     <x-warning-banner variant="info" title="Kartu nonaktif otomatis" class="mb-4">
         Kartu santri otomatis dinonaktifkan sistem begitu status santri berubah menjadi Nonaktif, Lulus, atau Keluar — tidak perlu dinonaktifkan manual.
     </x-warning-banner>

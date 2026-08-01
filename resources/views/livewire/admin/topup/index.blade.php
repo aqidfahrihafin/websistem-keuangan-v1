@@ -1,4 +1,4 @@
-<div>
+<div class="content-stack">
     <x-warning-banner variant="info" title="Transaksi Midtrans" class="mb-4">
         Daftar seluruh transaksi Midtrans - baik top up saldo biasa maupun pembayaran tagihan langsung, yang tidak
         pernah menyentuh saldo santri.
@@ -46,7 +46,9 @@
                     <tr wire:key="topup-{{ $topup->id }}">
                         <td class="px-4 py-3 font-mono text-xs">{{ $topup->midtrans_order_id }}</td>
                         <td class="px-4 py-3">
-                            @if ($topup->tagihan)
+                            @if ($topup->tujuan === \App\Models\TopupWali::TUJUAN_TABUNGAN)
+                                <span class="badge bg-violet-100 text-violet-700">Setoran Tabungan</span>
+                            @elseif ($topup->tagihan)
                                 <span class="badge bg-teal-100 text-teal-700">Bayar Tagihan Langsung</span>
                                 <p class="mt-1 text-xs text-slate-400">{{ $topup->tagihan->jenisTagihan->nama }} - {{ $topup->tagihan->periode_label }}</p>
                             @else

@@ -65,6 +65,16 @@ const tableActionIcons = {
     default: '<circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 11v5m0-8h.01"/>',
 };
 
+const tableActionSpinner = '<circle cx="12" cy="12" r="8.5" opacity=".22"/><path stroke-linecap="round" d="M20.5 12A8.5 8.5 0 0 0 12 3.5"/>';
+
+function renderTableActionIcon(element) {
+    const icon = element.dataset.actionIcon ?? 'default';
+    const paths = element.dataset.actionLoading === 'true'
+        ? tableActionSpinner
+        : tableActionIcons[icon];
+    element.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">${paths}</svg>`;
+}
+
 function actionIconFor(label) {
     const value = label.toLowerCase();
     if (/hapus|batalkan|tolak/.test(value)) return ['delete', true];
@@ -104,28 +114,127 @@ function enhanceTableActions(root = document) {
         if (destructive || element.classList.contains('btn-link-danger')) {
             element.classList.add('table-action-danger');
         }
-        element.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">${tableActionIcons[icon]}</svg>`;
+        renderTableActionIcon(element);
     });
+}
+
+function setTableActionLoading(element) {
+    if (!element || element.dataset.actionLoading === 'true') return;
+
+    element.dataset.actionLoading = 'true';
+    element.setAttribute('aria-busy', 'true');
+    if (element instanceof HTMLButtonElement) element.disabled = true;
+    element.closest('.table-card')?.classList.add('table-is-loading');
+    renderTableActionIcon(element);
+
+    // Pengaman jika koneksi terputus sebelum callback Livewire diterima.
+    window.setTimeout(() => clearTableActionLoaders(), 15000);
+}
+
+function clearTableActionLoaders() {
+    document.querySelectorAll('.table-action-icon[data-action-loading="true"]').forEach((element) => {
+        delete element.dataset.actionLoading;
+        element.removeAttribute('aria-busy');
+        if (element instanceof HTMLButtonElement) element.disabled = false;
+        renderTableActionIcon(element);
+    });
+    document.querySelectorAll('.table-card.table-is-loading').forEach((table) => {
+        table.classList.remove('table-is-loading');
+    });
+}
+
+let pendingLivewireRequests = 0;
+
+function globalLoadingIndicator() {
+    let indicator = document.getElementById('app-request-progress');
+    if (indicator) return indicator;
+
+    indicator = document.createElement('div');
+    indicator.id = 'app-request-progress';
+    indicator.className = 'app-request-progress';
+    indicator.setAttribute('role', 'progressbar');
+    indicator.setAttribute('aria-label', 'Memproses permintaan');
+    document.body.appendChild(indicator);
+    return indicator;
+}
+
+function startGlobalLoading() {
+    pendingLivewireRequests += 1;
+    globalLoadingIndicator().classList.add('is-active');
+}
+
+function finishGlobalLoading() {
+    pendingLivewireRequests = Math.max(0, pendingLivewireRequests - 1);
+    if (pendingLivewireRequests === 0) {
+        globalLoadingIndicator().classList.remove('is-active');
+    }
 }
 
 function refreshTableActions() {
     enhanceTableActions();
+    enhanceScrollableTables();
     // Cached history and Livewire morphs can finish immediately after their
     // navigation event. Recheck after layout so Back/Forward stays icon-only.
     requestAnimationFrame(() => {
         enhanceTableActions();
-        requestAnimationFrame(() => enhanceTableActions());
+        requestAnimationFrame(() => {
+            enhanceTableActions();
+            enhanceScrollableTables();
+        });
+    });
+}
+
+// Tabel lebar tetap dapat dicapai dengan keyboard dan memberi petunjuk
+// aksesibilitas yang seragam pada seluruh halaman.
+function enhanceScrollableTables(root = document) {
+    const containers = [];
+
+    if (root instanceof Element && root.matches('.table-card')) {
+        containers.push(root);
+    }
+    if (root.querySelectorAll) {
+        containers.push(...root.querySelectorAll('.table-card'));
+    }
+
+    containers.forEach((container) => {
+        container.setAttribute('tabindex', '0');
+        container.setAttribute('role', 'region');
+        container.setAttribute('aria-label', container.getAttribute('aria-label') ?? 'Tabel data, geser horizontal untuk melihat kolom lainnya');
     });
 }
 
 document.addEventListener('DOMContentLoaded', refreshTableActions);
+document.addEventListener('click', (event) => {
+    const action = event.target.closest?.('.table-card .table-action-icon');
+    // Pembuka dialog konfirmasi hanya memakai Alpine. Spinner baru tampil
+    // pada aksi Livewire langsung, bukan saat pengguna baru membuka dialog.
+    if (action?.hasAttribute('wire:click')) setTableActionLoading(action);
+});
+document.addEventListener('livewire:init', () => {
+    Livewire.hook('commit', ({ succeed, fail }) => {
+        startGlobalLoading();
+        let selesai = false;
+        const finish = () => {
+            if (selesai) return;
+            selesai = true;
+            finishGlobalLoading();
+            queueMicrotask(clearTableActionLoaders);
+        };
+        succeed(finish);
+        fail(finish);
+    });
+});
 document.addEventListener('livewire:navigated', refreshTableActions);
+document.addEventListener('livewire:navigated', clearTableActionLoaders);
 window.addEventListener('pageshow', refreshTableActions);
 window.addEventListener('popstate', refreshTableActions);
 new MutationObserver((mutations) => {
     for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
-            if (node.nodeType === Node.ELEMENT_NODE) enhanceTableActions(node);
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                enhanceTableActions(node);
+                enhanceScrollableTables(node);
+            }
         }
     }
 }).observe(document.documentElement, { childList: true, subtree: true });

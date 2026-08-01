@@ -12,8 +12,10 @@ class KebijakanKantinFactory extends Factory
 {
     public function definition(): array
     {
+        $faker = \Faker\Factory::create();
+
         return [
-            'nama' => 'Kebijakan '.fake()->word(),
+            'nama' => 'Kebijakan '.$faker->word(),
             'limit_harian' => 20000,
             'is_active' => true,
             'effective_from' => now()->subDay()->toDateString(),

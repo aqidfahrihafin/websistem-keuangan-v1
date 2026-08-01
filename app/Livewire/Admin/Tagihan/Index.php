@@ -6,7 +6,6 @@ use App\Exceptions\TagihanTidakBisaDibatalkanException;
 use App\Livewire\Concerns\WithPerPage;
 use App\Models\Periode;
 use App\Models\Tagihan;
-use App\Models\TagihanPembayaran;
 use App\Services\TagihanService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -24,10 +23,6 @@ class Index extends Component
     public string $status = '';
 
     public string $periode = '';
-
-    public ?int $bayarId = null;
-
-    public ?int $bayarNominal = null;
 
     public bool $showBatalModal = false;
 
@@ -50,27 +45,6 @@ class Index extends Component
     public function updatingPeriode(): void
     {
         $this->resetPage();
-    }
-
-    public function bukaBayar(int $id): void
-    {
-        $tagihan = Tagihan::findOrFail($id);
-        $this->bayarId = $id;
-        $this->bayarNominal = $tagihan->sisa();
-    }
-
-    public function catatPembayaranTunai(TagihanService $service): void
-    {
-        $this->validate(['bayarNominal' => ['required', 'integer', 'min:1']]);
-
-        $tagihan = Tagihan::findOrFail($this->bayarId);
-
-        $service->applyPembayaran($tagihan, $this->bayarNominal, TagihanPembayaran::SUMBER_TUNAI_LANGSUNG, [
-            'dicatat_oleh' => Auth::id(),
-        ]);
-
-        $this->bayarId = null;
-        session()->flash('status', 'Pembayaran tagihan tunai berhasil dicatat.');
     }
 
     public function bukaBatalkan(int $id): void

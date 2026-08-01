@@ -21,7 +21,7 @@
             : 'm5 13 4 4L19 7';
     @endphp
     <div
-        {{ $attributes->merge(['class' => "flex items-start gap-3 rounded-2xl border p-4 text-sm shadow-xs ring-1 ring-inset ring-white/40 {$styles['wrap']} {$styles['text']}"]) }}
+        {{ $attributes->merge(['class' => "app-notice flex items-start gap-3 rounded-2xl border p-4 text-sm shadow-xs ring-1 ring-inset ring-white/40 {$styles['wrap']} {$styles['text']}"]) }}
         x-data="{ show: true }"
         x-show="show"
         x-transition

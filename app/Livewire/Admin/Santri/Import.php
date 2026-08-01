@@ -31,7 +31,7 @@ class Import extends Component
     public function import(WaliAccountService $waliAccounts): void
     {
         $this->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,csv,txt'],
+            'file' => ['required', 'file', 'mimes:xlsx,csv,txt', 'max:10240'],
         ]);
 
         $importer = new SantriImport(Auth::user());

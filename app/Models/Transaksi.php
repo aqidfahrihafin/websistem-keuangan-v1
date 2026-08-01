@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Str;
 
@@ -34,6 +35,8 @@ class Transaksi extends Model
 
     public const JENIS_TRANSFER_ANTAR_SANTRI = 'transfer_antar_santri';
 
+    public const JENIS_TRANSFER_KE_TABUNGAN = 'transfer_ke_tabungan';
+
     public const ARAH_DEBIT = 'debit';
 
     public const ARAH_KREDIT = 'kredit';
@@ -59,6 +62,13 @@ class Transaksi extends Model
     protected function casts(): array
     {
         return [
+            'santri_id' => 'integer',
+            'tagihan_id' => 'integer',
+            'diproses_oleh' => 'integer',
+            'referensi_id' => 'integer',
+            'nominal' => 'integer',
+            'saldo_sebelum' => 'integer',
+            'saldo_sesudah' => 'integer',
             'metadata' => 'array',
             'created_at' => 'datetime',
         ];
@@ -112,5 +122,21 @@ class Transaksi extends Model
     public function kwitansi(): HasOne
     {
         return $this->hasOne(Kwitansi::class);
+    }
+
+    public function mutasiKas(): MorphOne
+    {
+        return $this->morphOne(MutasiKas::class, 'referensi');
+    }
+
+    /**
+     * Permintaan penarikan yang menghasilkan transaksi ini.
+     *
+     * Mutasi kas penarikan melekat pada permintaan agar bukti persetujuan
+     * dan verifikasi sidik jari tetap berada dalam satu jejak audit.
+     */
+    public function penarikanRequest(): HasOne
+    {
+        return $this->hasOne(PenarikanRequest::class);
     }
 }

@@ -1,4 +1,4 @@
-<div>
+<div class="content-stack">
     @if ($errorHapus)
         <x-alert-banner type="error" :message="$errorHapus" class="mb-4" />
     @endif
@@ -29,7 +29,7 @@
                 <tr>
                     <th class="px-4 py-3">Nama / NIS</th>
                     <th class="px-4 py-3">Keluarga (No KK)</th>
-                    <th class="px-4 py-3">Lembaga &amp; Kamar</th>
+                    <th class="px-4 py-3">Lembaga, Rayon &amp; Kamar</th>
                     <th class="px-4 py-3">Kategori Diskon</th>
                     <th class="px-4 py-3">Status</th>
                     <th class="px-4 py-3"></th>
@@ -45,6 +45,7 @@
                         <td class="px-4 py-3">{{ $santri->keluarga?->no_kk ?? '-' }}</td>
                         <td class="px-4 py-3">
                             <p class="font-medium text-slate-800">{{ $santri->lembaga?->nama ?? '-' }}</p>
+                            <p class="mt-0.5 text-xs text-slate-500">{{ $santri->rayon?->nama ?? 'Belum ada rayon' }}</p>
                             <p class="mt-0.5 text-xs text-slate-500">{{ $santri->kamar ? $santri->kamar->nama.' · '.$santri->kamar->kode : 'Belum ditempatkan' }}</p>
                         </td>
                         <td class="px-4 py-3">

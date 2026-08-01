@@ -12,6 +12,9 @@ class WaliNotification extends Model
     protected function casts(): array
     {
         return [
+            // MySQL can expose BIGINT foreign keys as numeric strings. The
+            // notification ownership endpoint compares this value strictly.
+            'user_id' => 'integer',
             'data' => 'array',
             'read_at' => 'datetime',
         ];

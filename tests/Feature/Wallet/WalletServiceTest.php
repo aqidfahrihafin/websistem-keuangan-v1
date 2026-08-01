@@ -46,6 +46,38 @@ it('credits a santri wallet and records an accurate ledger snapshot', function (
         ->and($santri->saldo->fresh()->saldo)->toBe(50000);
 });
 
+it('notifies wali when a cash-session deposit credits the santri wallet', function () {
+    $santri = Santri::factory()->create();
+    $wali = tambahWaliUntukWallet($santri);
+
+    $push = $this->mock(PushNotificationService::class);
+    $push->shouldReceive('notify')
+        ->once()
+        ->with(
+            Mockery::on(fn ($u) => $u->is($wali)),
+            'Setoran Saldo Berhasil',
+            Mockery::type('string'),
+            Mockery::on(fn ($data) => $data['type'] === 'setoran_saldo_tunai'
+                && $data['santri_id'] === $santri->id
+                && isset($data['transaksi_id'])),
+        );
+
+    app(WalletService::class)->credit($santri, 50000, Transaksi::JENIS_TOPUP_TUNAI, [
+        'metode' => Transaksi::METODE_TUNAI,
+        'metadata' => ['sesi_kas_id' => 10],
+    ]);
+});
+
+it('does not duplicate notifications for cash topups outside a cash session', function () {
+    $santri = Santri::factory()->create();
+    tambahWaliUntukWallet($santri);
+
+    $push = $this->mock(PushNotificationService::class);
+    $push->shouldNotReceive('notify');
+
+    app(WalletService::class)->credit($santri, 50000, Transaksi::JENIS_TOPUP_TUNAI);
+});
+
 it('debits a santri wallet and records an accurate ledger snapshot', function () {
     $santri = makeSantriWithSaldo(50000);
     $wallet = app(WalletService::class);

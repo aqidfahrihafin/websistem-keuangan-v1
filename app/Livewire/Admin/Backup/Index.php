@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Backup;
 use App\Livewire\Concerns\WithPerPage;
 use App\Services\BackupService;
 use App\Services\BackupSettingsService;
+use App\Services\DataSnapshotService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -30,6 +31,8 @@ class Index extends Component
     public ?string $hasilTesKonfigurasi = null;
 
     public ?string $pulihkanNama = null;
+
+    public ?array $pulihkanKompatibilitas = null;
 
     public string $kodeKonfirmasi = '';
 
@@ -79,9 +82,10 @@ class Index extends Component
         }
     }
 
-    public function openPulihkan(string $nama): void
+    public function openPulihkan(string $nama, BackupService $service): void
     {
         $this->pulihkanNama = $nama;
+        $this->pulihkanKompatibilitas = $service->inspeksi($nama);
         $this->kodeKonfirmasi = '';
         $this->resetValidation();
         $this->showPulihkanModal = true;
@@ -151,13 +155,20 @@ class Index extends Component
         try {
             $service->pulihkan($this->pulihkanNama, $this->kodeKonfirmasi);
             $this->showPulihkanModal = false;
-            $this->pesanSukses = "Database berhasil dipulihkan dari backup {$this->pulihkanNama}. Sebuah backup pengaman dari kondisi sebelumnya telah dibuat otomatis.";
+            $this->pesanSukses = "Database berhasil dipulihkan dari backup {$this->pulihkanNama}, schema diperbarui ke versi aplikasi saat ini, dan pemeriksaan integritas berhasil. Sebuah backup pengaman dari kondisi sebelumnya telah dibuat otomatis.";
         } catch (Throwable $exception) {
             $this->pesanError = 'Pemulihan gagal: '.$exception->getMessage();
         }
     }
 
-    public function render(BackupService $service)
+    public function jadikanDataUtama(DataSnapshotService $snapshot): void
+    {
+        $snapshot->markAsOperationalPrimary();
+        $this->pesanError = null;
+        $this->pesanSukses = 'Database aktif telah ditetapkan sebagai data operasional utama. Penanda hasil restore sudah dihapus.';
+    }
+
+    public function render(BackupService $service, DataSnapshotService $snapshot)
     {
         // BackupService::daftar() isn't an Eloquent query (it lists .zip
         // files off disk) - paginate() isn't available on a plain array, so
@@ -189,6 +200,7 @@ class Index extends Component
             'title' => 'Backup & Restore',
             'backups' => $backups,
             'kesiapan' => $service->kesiapan(),
+            'snapshotAktif' => $snapshot->current(),
         ]);
     }
 }

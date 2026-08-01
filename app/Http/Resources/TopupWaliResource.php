@@ -25,6 +25,8 @@ class TopupWaliResource extends JsonResource
             'uuid' => $this->uuid,
             'santri_id' => $this->santri_id,
             'tagihan_id' => $this->tagihan_id,
+            'tujuan' => $this->tujuan,
+            'transaksi_tabungan_id' => $this->transaksi_tabungan_id,
             'nominal_diminta' => $this->nominal_diminta,
             'status' => $this->status,
             'nominal_potongan_tagihan' => $this->nominal_potongan_tagihan,

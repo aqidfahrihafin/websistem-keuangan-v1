@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-xl space-y-6">
+<div class="content-stack mx-auto max-w-xl">
     <x-form-section title="Import Santri dari Excel/CSV" description="File diproses per-batch sehingga aman untuk data dalam jumlah besar.">
         <x-warning-banner variant="info" title="Gunakan template resmi" class="mb-4">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

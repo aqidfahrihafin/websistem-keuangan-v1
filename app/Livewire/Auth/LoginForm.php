@@ -80,6 +80,11 @@ class LoginForm extends Component
         activity('auth')->causedBy(Auth::user())->withProperties(['ip' => request()->ip(), 'guard' => 'web'])->log('Login berhasil');
 
         session()->regenerate();
+        session()->put('auth.login.attempted', true);
+
+        if (request()->isSecure()) {
+            config(['session.secure' => true]);
+        }
 
         $this->redirect(route('dashboard'), navigate: false);
     }

@@ -12,10 +12,12 @@ class KeluargaFactory extends Factory
 {
     public function definition(): array
     {
+        $faker = \Faker\Factory::create();
+
         return [
-            'no_kk' => fake()->unique()->numerify('################'),
-            'nama_kepala_keluarga' => fake()->name('male'),
-            'alamat' => fake()->address(),
+            'no_kk' => $faker->unique()->numerify('################'),
+            'nama_kepala_keluarga' => $faker->name('male'),
+            'alamat' => $faker->address(),
         ];
     }
 }

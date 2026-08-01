@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-2xl space-y-6">
+<div class="content-stack mx-auto max-w-2xl">
     <x-warning-banner variant="info" title="Kredensial Midtrans Snap">
         Dipakai untuk top up saldo wali. Dapatkan Server Key dan Client Key dari <span class="font-medium">Midtrans Dashboard &rarr; Settings &rarr; Access Keys</span>. Gunakan kredensial Sandbox terlebih dahulu untuk uji coba sebelum mengaktifkan mode produksi.
     </x-warning-banner>

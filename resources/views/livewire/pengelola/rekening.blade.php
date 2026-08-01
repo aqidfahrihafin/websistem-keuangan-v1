@@ -11,7 +11,7 @@
     ];
 @endphp
 
-<div class="space-y-6">
+<div class="content-stack">
     @if ($unitUsaha->bank_no_rekening)
         <x-bank-account-card
             label="Rekening Pencairan Aktif"

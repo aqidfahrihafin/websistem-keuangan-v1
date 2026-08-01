@@ -11,6 +11,7 @@ use App\Models\Transaksi;
 use App\Models\User;
 use App\Models\WaliSantri;
 use App\Services\PenarikanService;
+use App\Services\SesiKasService;
 use App\Services\PushNotificationService;
 use App\Services\WalletService;
 use Illuminate\Support\Carbon;
@@ -159,10 +160,16 @@ it('threads the originating device through to the request for the audit trail', 
     app(WalletService::class)->credit($santri, 100000, Transaksi::JENIS_TOPUP_TUNAI);
     KartuSantri::factory()->create(['santri_id' => $santri->id, 'fingerprint_template_ref' => 'FP-DEVICE']);
     $device = Device::factory()->create(['tipe' => Device::TIPE_KIOSK_PENARIKAN, 'status' => 'aktif']);
+    $petugas = makeUserWithRole('petugas_kios');
+    $device->petugasTerdaftar()->attach($petugas->id, ['aktif' => true, 'ditugaskan_at' => now()]);
+    $sesi = app(SesiKasService::class)->buka($petugas, 'Kios Penarikan', 100000, $device);
 
     $result = app(PenarikanService::class)->ajukanMandiri($santri, 20000, 'FP-DEVICE', $device);
 
-    expect($result->device_id)->toBe($device->id);
+    expect($result->device_id)->toBe($device->id)
+        ->and($result->sesi_kas_id)->toBe($sesi->id)
+        ->and($result->diproses_oleh)->toBe($petugas->id)
+        ->and($sesi->fresh()->total_keluar)->toBe(20000);
 
     $transaksi = Transaksi::where('santri_id', $santri->id)->where('jenis', Transaksi::JENIS_PENARIKAN_TUNAI)->first();
     expect($transaksi->referensi_id)->toBe($result->id);

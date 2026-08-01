@@ -25,7 +25,7 @@ class WalletService
             $sesudah = $sebelum + $nominal;
             $saldo->update(['saldo' => $sesudah]);
 
-            return Transaksi::create(array_merge([
+            $transaksi = Transaksi::create(array_merge([
                 'santri_id' => $santri->id,
                 'jenis' => $jenis,
                 'arah' => Transaksi::ARAH_KREDIT,
@@ -35,6 +35,15 @@ class WalletService
                 'status' => Transaksi::STATUS_BERHASIL,
                 'metode' => Transaksi::METODE_SISTEM,
             ], $attrs));
+
+            // Setoran saldo dari petugas kios membawa identitas sesi kas di
+            // metadata. Batasi notifikasi pada jalur ini agar topup transfer
+            // wali/Midtrans yang sudah punya notifikasi sendiri tidak ganda.
+            if ($jenis === Transaksi::JENIS_TOPUP_TUNAI && data_get($attrs, 'metadata.sesi_kas_id')) {
+                DB::afterCommit(fn () => $this->notifySetoranTunai($santri, $transaksi, $nominal, $sesudah));
+            }
+
+            return $transaksi;
         });
     }
 
@@ -87,6 +96,7 @@ class WalletService
             Transaksi::JENIS_PEMBAYARAN_TAGIHAN => ['Pembayaran Tagihan', 'pembayaran tagihan'],
             Transaksi::JENIS_PEMBAYARAN_KANTIN => ['Pembayaran Kantin', 'pembayaran kantin'],
             Transaksi::JENIS_TRANSFER_ANTAR_SANTRI => ['Transfer Saldo', 'transfer ke santri lain'],
+            Transaksi::JENIS_TRANSFER_KE_TABUNGAN => ['Setoran Tabungan', 'dipindahkan ke tabungan'],
             default => ['Saldo Berkurang', 'transaksi'],
         };
 
@@ -96,6 +106,23 @@ class WalletService
         foreach ($santri->walis as $wali) {
             $this->push->notify($wali, $title, $body, [
                 'type' => $jenis,
+                'santri_id' => $santri->id,
+                'santri_nama' => $santri->nama,
+                'transaksi_id' => $transaksi->id,
+                'saldo_akhir' => $saldoAkhir,
+            ]);
+        }
+    }
+
+    private function notifySetoranTunai(Santri $santri, Transaksi $transaksi, int $nominal, int $saldoAkhir): void
+    {
+        $body = "Saldo {$santri->nama} bertambah Rp".number_format($nominal, 0, ',', '.')
+            .' melalui setoran tunai petugas kios. Saldo akhir: Rp'
+            .number_format($saldoAkhir, 0, ',', '.').'.';
+
+        foreach ($santri->walis as $wali) {
+            $this->push->notify($wali, 'Setoran Saldo Berhasil', $body, [
+                'type' => 'setoran_saldo_tunai',
                 'santri_id' => $santri->id,
                 'santri_nama' => $santri->nama,
                 'transaksi_id' => $transaksi->id,

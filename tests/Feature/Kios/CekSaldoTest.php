@@ -8,6 +8,7 @@ use App\Models\PenarikanRequest;
 use App\Models\Santri;
 use App\Models\Transaksi;
 use App\Services\PenarikanService;
+use App\Services\SesiKasService;
 use App\Services\WalletService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -22,10 +23,15 @@ beforeEach(function () {
 
 function kioskPenarikanAktif(): Device
 {
-    return Device::factory()->create([
+    $device = Device::factory()->create([
         'tipe' => Device::TIPE_KIOSK_PENARIKAN,
         'status' => 'aktif',
     ]);
+    $petugas = makeUserWithRole('petugas_kios');
+    $device->petugasTerdaftar()->attach($petugas->id, ['aktif' => true, 'ditugaskan_at' => now()]);
+    app(SesiKasService::class)->buka($petugas, $device->lokasi ?? 'Kios Uji', 100000, $device);
+
+    return $device;
 }
 
 afterEach(function () {
@@ -137,7 +143,8 @@ it('completes an in-policy withdrawal self-service once a matching fingerprint i
 
     $request = PenarikanRequest::where('santri_id', $santri->id)->where('nominal_diminta', 25000)->first();
     expect($request->status)->toBe(PenarikanRequest::STATUS_SELESAI)
-        ->and($request->diproses_oleh)->toBeNull()
+        ->and($request->diproses_oleh)->not->toBeNull()
+        ->and($request->sesi_kas_id)->not->toBeNull()
         ->and($request->device_id)->toBe($device->id);
 });
 

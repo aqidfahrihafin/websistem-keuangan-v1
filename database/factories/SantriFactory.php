@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Santri;
+use App\Models\Keluarga;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -12,15 +13,18 @@ class SantriFactory extends Factory
 {
     public function definition(): array
     {
+        $faker = \Faker\Factory::create();
+
         return [
-            'nis' => fake()->unique()->numerify('##########'),
-            'nama' => fake()->name(),
-            'tempat_lahir' => fake()->city(),
-            'tanggal_lahir' => fake()->dateTimeBetween('-18 years', '-12 years'),
-            'jenis_kelamin' => fake()->randomElement(['L', 'P']),
-            'alamat' => fake()->address(),
+            'nis' => $faker->unique()->numerify('##########'),
+            'nama' => $faker->name(),
+            'tempat_lahir' => $faker->city(),
+            'tanggal_lahir' => $faker->dateTimeBetween('-18 years', '-12 years'),
+            'jenis_kelamin' => $faker->randomElement(['L', 'P']),
+            'alamat' => $faker->address(),
             'status' => Santri::STATUS_AKTIF,
-            'tanggal_masuk' => fake()->dateTimeBetween('-3 years', 'now'),
+            'tanggal_masuk' => $faker->dateTimeBetween('-3 years', 'now'),
+            'keluarga_id' => Keluarga::factory(),
         ];
     }
 }

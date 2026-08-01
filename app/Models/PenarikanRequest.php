@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 #[Fillable([
     'santri_id', 'nominal_diminta', 'status', 'diminta_at', 'dalam_jam_kebijakan',
     'melebihi_limit_harian', 'wajib_surat_keterangan', 'surat_keterangan_path',
-    'surat_keterangan_status', 'verifikasi_fingerprint_ref', 'device_id',
+    'surat_keterangan_status', 'verifikasi_fingerprint_ref', 'device_id', 'sesi_kas_id',
     'diproses_oleh', 'diproses_at', 'catatan_petugas', 'transaksi_id',
 ])]
 class PenarikanRequest extends Model
@@ -59,6 +59,11 @@ class PenarikanRequest extends Model
     public function diprosesOleh(): BelongsTo
     {
         return $this->belongsTo(User::class, 'diproses_oleh');
+    }
+
+    public function sesiKas(): BelongsTo
+    {
+        return $this->belongsTo(SesiKas::class);
     }
 
     public function transaksi(): BelongsTo

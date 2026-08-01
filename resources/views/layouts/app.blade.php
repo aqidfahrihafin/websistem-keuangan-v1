@@ -12,6 +12,7 @@
         <link rel="icon" href="{{ $appSettings->logoUrl() }}">
     @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @stack('styles')
     @livewireStyles
     @if ($midtransSettings->clientKey())
         <script
@@ -54,22 +55,26 @@
                 ],
             ],
             [
-                'label' => 'Keuangan',
+                'label' => 'Transaksi Keuangan',
                 'items' => [
-                    // Operational entities only - each immediately followed
-                    // by its own config/master-data item. Reports split out
-                    // into their own "Laporan" group below (read-only,
-                    // checked periodically, a different mental mode than
-                    // the day-to-day entities here) - previously mixed into
-                    // this same group, which grew to 10 items and needed
-                    // scrolling to see them all.
                     ['route' => 'admin.tagihan.index', 'match' => ['admin.tagihan.index', 'admin.tagihan.generate'], 'label' => 'Tagihan', 'icon' => 'document'],
-                    ['route' => 'admin.tagihan.jenis.index', 'match' => 'admin.tagihan.jenis.*', 'label' => 'Jenis Tagihan', 'icon' => 'tag'],
-                    ['route' => 'admin.periode.index', 'match' => 'admin.periode.*', 'label' => 'Periode', 'icon' => 'calendar'],
-                    ['route' => 'admin.kategori-diskon.index', 'match' => 'admin.kategori-diskon.*', 'label' => 'Kategori Diskon', 'icon' => 'percent'],
                     ['route' => 'admin.transaksi.index', 'match' => 'admin.transaksi.*', 'label' => 'Transaksi', 'icon' => 'receipt'],
                     ['route' => 'admin.topup.index', 'match' => 'admin.topup.*', 'label' => 'Top Up Wali', 'icon' => 'arrow-up-circle'],
                     ['route' => 'admin.penarikan.index', 'match' => 'admin.penarikan.*', 'label' => 'Penarikan Tunai', 'icon' => 'arrow-down-circle'],
+                ],
+            ],
+            [
+                'label' => 'Kas & Operasional',
+                'items' => [
+                    ['route' => 'admin.sesi-kas.index', 'match' => 'admin.sesi-kas.*', 'label' => 'Sesi Kas', 'icon' => 'wallet'],
+                ],
+            ],
+            [
+                'label' => 'Master Keuangan',
+                'items' => [
+                    ['route' => 'admin.tagihan.jenis.index', 'match' => 'admin.tagihan.jenis.*', 'label' => 'Jenis Tagihan', 'icon' => 'tag'],
+                    ['route' => 'admin.periode.index', 'match' => 'admin.periode.*', 'label' => 'Periode', 'icon' => 'calendar'],
+                    ['route' => 'admin.kategori-diskon.index', 'match' => 'admin.kategori-diskon.*', 'label' => 'Kategori Diskon', 'icon' => 'percent'],
                     ['route' => 'admin.kebijakan.penarikan', 'match' => 'admin.kebijakan.*', 'label' => 'Kebijakan Penarikan', 'icon' => 'shield'],
                 ],
             ],
@@ -90,10 +95,11 @@
         // bendahara can't actually open (see routes/web.php).
         if (auth()->user()->hasRole('admin')) {
             $navGroups[] = [
-                'label' => 'Kesantrian',
+                'label' => 'Data Master Santri',
                 'items' => [
                     ['route' => 'admin.santri.index', 'match' => 'admin.santri.*', 'label' => 'Data Santri', 'icon' => 'users'],
-                    ['route' => 'admin.lembaga.index', 'match' => 'admin.lembaga.*', 'label' => 'Lembaga / Rayon', 'icon' => 'building'],
+                    ['route' => 'admin.lembaga.index', 'match' => 'admin.lembaga.*', 'label' => 'Lembaga Pendidikan', 'icon' => 'building'],
+                    ['route' => 'admin.rayon.index', 'match' => 'admin.rayon.*', 'label' => 'Data Rayon', 'icon' => 'building'],
                     ['route' => 'admin.kamar.index', 'match' => 'admin.kamar.*', 'label' => 'Data Kamar', 'icon' => 'room'],
                     ['route' => 'admin.keluarga.index', 'match' => 'admin.keluarga.*', 'label' => 'Data Keluarga', 'icon' => 'family'],
                     ['route' => 'admin.wali.index', 'match' => 'admin.wali.*', 'label' => 'Data Wali Santri', 'icon' => 'user-group'],
@@ -113,17 +119,41 @@
             ];
 
             $navGroups[] = [
-                'label' => 'Pengaturan',
+                'label' => 'Sistem & Akses',
                 'items' => [
-                    ['route' => 'admin.users.index', 'match' => 'admin.users.*', 'label' => 'Pengguna', 'icon' => 'cog'],
+                    ['route' => 'admin.users.index', 'match' => 'admin.users.*', 'label' => 'Pengguna & Petugas', 'icon' => 'users'],
                     ['route' => 'admin.perangkat.index', 'match' => 'admin.perangkat.*', 'label' => 'Perangkat Kiosk', 'icon' => 'device'],
                     ['route' => 'admin.banner.index', 'match' => 'admin.banner.*', 'label' => 'Banner Beranda', 'icon' => 'image'],
+                ],
+            ];
+
+            $navGroups[] = [
+                'label' => 'Konfigurasi',
+                'items' => [
                     ['route' => 'admin.pengaturan.aplikasi', 'match' => 'admin.pengaturan.aplikasi', 'label' => 'Pengaturan Aplikasi', 'icon' => 'adjustments'],
                     ['route' => 'admin.pengaturan.midtrans', 'match' => 'admin.pengaturan.midtrans', 'label' => 'Pengaturan Midtrans', 'icon' => 'credit-card'],
                     ['route' => 'admin.backup.index', 'match' => 'admin.backup.*', 'label' => 'Backup & Restore', 'icon' => 'archive'],
                 ],
             ];
         }
+    } elseif (auth()->check() && auth()->user()->hasAnyRole(['admin_lembaga', 'admin_rayon'])) {
+        $navGroups = [[
+            'label' => 'Pengelolaan Unit',
+            'items' => [
+                ['route' => 'unit.dashboard', 'match' => 'unit.dashboard', 'label' => 'Dashboard', 'icon' => 'home'],
+                ['route' => 'unit.santri.index', 'match' => 'unit.santri.*', 'label' => 'Data Santri', 'icon' => 'users'],
+            ],
+        ]];
+    } elseif (auth()->check() && auth()->user()->hasRole('petugas_kios')) {
+        $navGroups = [[
+            'label' => 'Operasional Kios',
+            'items' => [
+                ['route' => 'petugas-kios.dashboard', 'match' => 'petugas-kios.dashboard', 'label' => 'Beranda Kios', 'icon' => 'home'],
+                ['route' => 'petugas-kios.transaksi', 'match' => 'petugas-kios.transaksi', 'label' => 'Transaksi Tunai', 'icon' => 'wallet'],
+                ['route' => 'petugas-kios.tutup-sesi', 'match' => 'petugas-kios.tutup-sesi', 'label' => 'Tutup Sesi Kas', 'icon' => 'lock'],
+                ['route' => 'petugas-kios.mutasi', 'match' => 'petugas-kios.mutasi', 'label' => 'Riwayat Mutasi', 'icon' => 'receipt'],
+            ],
+        ]];
     } elseif (auth()->check() && auth()->user()->hasRole('pengasuh')) {
         $navGroups = [[
             'label' => null,
@@ -171,6 +201,7 @@
                 ['route' => 'dev.tentang', 'match' => ['dev.dashboard', 'dev.tentang'], 'label' => 'Tentang Aplikasi', 'icon' => 'info'],
                 ['route' => 'dev.instalasi', 'match' => 'dev.instalasi', 'label' => 'Instalasi & Kebutuhan', 'icon' => 'cog'],
                 ['route' => 'dev.deployment', 'match' => 'dev.deployment', 'label' => 'Deployment & Mitigasi', 'icon' => 'shield'],
+                ['route' => 'dev.flow-sistem', 'match' => 'dev.flow-sistem', 'label' => 'Flow Fitur Sistem', 'icon' => 'document'],
                 ['route' => 'dev.skema-database', 'match' => 'dev.skema-database', 'label' => 'Skema Database', 'icon' => 'database'],
                 ['route' => 'dev.api.wali', 'match' => 'dev.api.wali', 'label' => 'Dokumentasi API Wali', 'icon' => 'document'],
                 ['route' => 'dev.api.kiosk', 'match' => 'dev.api.kiosk', 'label' => 'Dokumentasi API Kiosk', 'icon' => 'document'],
@@ -195,6 +226,7 @@
         'room' => 'M4 21V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16M4 21h16M8 21v-5h8v5M8 8h3v3H8V8Zm5 0h3v3h-3V8Z',
         'credit-card' => 'M3 6h18a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm-1 5h20M6 15h4',
         'wallet' => 'M21 7H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-4a2 2 0 1 0 0 4h4M5 7l1-3h9l3 3',
+        'lock' => 'M7 10V7a5 5 0 0 1 10 0v3m-11 0h12a1 1 0 0 1 1 1v9H5v-9a1 1 0 0 1 1-1Zm6 4v3',
         'info' => 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-9v5m0-8h.01',
         'calendar' => 'M8 2v3m8-3v3M3.5 9h17M4 5h16a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z',
         'chart' => 'M4 19V10m6 9V4m6 15v-7M3 19h18',
@@ -276,7 +308,7 @@
 
             <nav
                 id="app-sidebar-navigation"
-                class="no-scrollbar flex-1 space-y-6 overflow-y-auto px-3 py-5 text-sm"
+                class="no-scrollbar flex-1 space-y-2 overflow-y-auto px-3 py-4 text-sm"
                 x-data="{
                     scrollKey: 'emall-sidebar-scroll-{{ auth()->id() }}',
                     rememberPosition() {
@@ -287,11 +319,74 @@
                 x-on:click.capture="rememberPosition()"
             >
                 @foreach ($navGroups as $group)
-                    <div>
+                    @php
+                        $groupAktif = collect($group['items'])->contains(
+                            fn ($item) => $isActive($item['match'])
+                        );
+                        $groupId = 'nav-group-'.\Illuminate\Support\Str::slug($group['label'] ?? 'utama');
+                    @endphp
+                    <div
                         @if ($group['label'])
-                            <p class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[.14em] text-slate-400">{{ $group['label'] }}</p>
+                            x-data="{ open: {{ $groupAktif ? 'true' : 'false' }} }"
                         @endif
-                        <div class="space-y-1">
+                        @class([
+                            'overflow-hidden rounded-xl border transition duration-200' => $group['label'],
+                            'border-teal-300/20 bg-teal-300/[.06]' => $groupAktif,
+                            'border-white/[.06] bg-white/[.025] hover:border-white/10 hover:bg-white/[.04]' => $group['label'] && ! $groupAktif,
+                            'rounded-xl border p-1 transition duration-200' => ! $group['label'],
+                            'border-white/[.06] bg-white/[.025]' => ! $group['label'] && ! $groupAktif,
+                        ])
+                    >
+                        @if ($group['label'])
+                            <button
+                                type="button"
+                                @class([
+                                    'flex w-full items-center gap-2 px-3 py-2.5 text-left transition',
+                                    'text-teal-200' => $groupAktif,
+                                    'text-slate-400 hover:text-slate-200' => ! $groupAktif,
+                                ])
+                                x-on:click="open = ! open"
+                                :aria-expanded="open.toString()"
+                                aria-controls="{{ $groupId }}"
+                            >
+                                <span class="min-w-0 flex-1 truncate text-[10px] font-bold uppercase tracking-[.13em]">
+                                    {{ $group['label'] }}
+                                </span>
+                                <span class="rounded-md bg-white/[.06] px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-slate-400">
+                                    {{ count($group['items']) }}
+                                </span>
+                                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/[.04]">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        class="h-3 w-3 transition-transform duration-200"
+                                        :class="{ 'rotate-180': open }"
+                                    >
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                                    </svg>
+                                </span>
+                            </button>
+                        @endif
+                        <div
+                            id="{{ $groupId }}"
+                            @class([
+                                'space-y-1',
+                                'border-t border-white/[.06] px-1 pb-1 pt-1' => $group['label'],
+                            ])
+                            @if ($group['label'])
+                                x-cloak
+                                x-show="open"
+                                x-transition:enter="transition duration-150 ease-out"
+                                x-transition:enter-start="-translate-y-1 opacity-0"
+                                x-transition:enter-end="translate-y-0 opacity-100"
+                                x-transition:leave="transition duration-100 ease-in"
+                                x-transition:leave-start="translate-y-0 opacity-100"
+                                x-transition:leave-end="-translate-y-1 opacity-0"
+                            @endif
+                        >
                             @foreach ($group['items'] as $item)
                                 @php
                                     $active = $isActive($item['match']);
@@ -398,8 +493,12 @@
                                     aria-label="Buka menu akun {{ auth()->user()->name }}"
                                     class="flex items-center gap-2.5 rounded-xl border border-transparent py-1 pl-1 pr-2 transition hover:border-slate-200 hover:bg-white hover:shadow-sm"
                                 >
-                                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-teal-700 to-teal-900 text-xs font-semibold text-white shadow-sm">
-                                        {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                                    <div class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-linear-to-br from-teal-700 to-teal-900 text-xs font-semibold text-white shadow-sm">
+                                        @if (auth()->user()->avatar_path)
+                                            <img src="{{ Storage::disk('public')->url(auth()->user()->avatar_path) }}" alt="" class="h-full w-full object-cover">
+                                        @else
+                                            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                                        @endif
                                     </div>
                                     <div class="hidden min-w-0 text-left sm:block">
                                         <p class="truncate text-sm font-medium leading-tight text-slate-900">{{ auth()->user()->name }}</p>
@@ -448,9 +547,20 @@
             </header>
 
             <main class="relative flex-1 p-4 sm:p-6 lg:p-8">
-                <div class="mx-auto w-full max-w-[1600px]">
+                <div class="app-content mx-auto w-full max-w-[1600px]">
                 <x-alert-banner type="success" :message="session('status')" class="mb-5" />
                 <x-alert-banner type="error" :message="session('error')" class="mb-5" />
+
+                @if (auth()->check() && auth()->user()->hasRole('admin') && !request()->routeIs('admin.backup.*'))
+                    @php($activeSnapshot = app(\App\Services\DataSnapshotService::class)->current())
+                    @if ($activeSnapshot)
+                        <x-warning-banner variant="warning" title="Snapshot hasil restore sedang aktif" class="mb-5">
+                            Database memakai <strong class="font-mono">{{ $activeSnapshot['backup_name'] }}</strong>.
+                            Transaksi baru tersimpan pada snapshot ini dan tidak otomatis digabung saat berpindah ke backup lain.
+                            <a href="{{ route('admin.backup.index') }}" wire:navigate class="font-semibold underline">Lihat detail restore</a>.
+                        </x-warning-banner>
+                    @endif
+                @endif
 
                 {{ $slot }}
                 </div>

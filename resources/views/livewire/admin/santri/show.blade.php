@@ -39,7 +39,7 @@
     $kartuAktifCount = $santri->kartuSantris->where('status', 'aktif')->count();
 @endphp
 
-<div class="space-y-6">
+<div class="content-stack">
     @if ($errorHapus)
         <x-alert-banner type="error" :message="$errorHapus" />
     @endif
@@ -62,6 +62,7 @@
                     </div>
                     <p class="mt-1 truncate text-sm text-teal-100/80">
                         NIS {{ $santri->nis }} &bull; {{ $santri->lembaga?->nama ?? 'Belum ada lembaga' }}
+                        &bull; {{ $santri->rayon?->nama ?? 'Belum ada rayon' }}
                         &bull; {{ $santri->kamar?->nama ?? 'Belum ada kamar' }}
                     </p>
                 </div>
@@ -92,13 +93,23 @@
     </div>
 
     {{-- Stat row --}}
-    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
         <div class="card p-4">
             <div class="flex h-9 w-9 items-center justify-center rounded-full bg-teal-50 text-teal-700">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-4a2 2 0 1 0 0 4h4M5 7l1-3h9l3 3" /></svg>
             </div>
             <p class="mt-3 text-xs text-slate-500">Saldo</p>
             <p class="mt-0.5 text-lg font-semibold text-slate-900">Rp {{ number_format($saldo, 0, ',', '.') }}</p>
+        </div>
+        <div class="card p-4">
+            <div class="flex h-9 w-9 items-center justify-center rounded-full bg-violet-50 text-violet-600">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16v12H4V7Zm3 0V5h10v2M8 12h8m-8 3h5" /></svg>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">Tabungan</p>
+            <p class="mt-0.5 text-lg font-semibold text-slate-900">Rp {{ number_format($rekeningTabungan?->saldo ?? 0, 0, ',', '.') }}</p>
+            <p class="mt-1 text-xs {{ $rekeningTabungan?->status === 'aktif' ? 'text-emerald-600' : 'text-slate-400' }}">
+                {{ $rekeningTabungan ? ucfirst($rekeningTabungan->status) : 'Belum dibuka' }}
+            </p>
         </div>
         <div class="card p-4">
             <div class="flex h-9 w-9 items-center justify-center rounded-full {{ $tagihanBelumLunasCount > 0 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600' }}">
@@ -168,6 +179,10 @@
                     <dd class="mt-0.5 font-medium text-slate-900">{{ $santri->lembaga?->nama ?? '-' }}</dd>
                 </div>
                 <div>
+                    <dt class="text-slate-500">Rayon</dt>
+                    <dd class="mt-0.5 font-medium text-slate-900">{{ $santri->rayon?->nama ?? 'Belum ditempatkan' }}</dd>
+                </div>
+                <div>
                     <dt class="text-slate-500">Kamar Aktif</dt>
                     <dd class="mt-0.5 font-medium text-slate-900">{{ $santri->kamar?->nama ?? 'Belum ditempatkan' }}</dd>
                     @if ($santri->kamar)
@@ -227,7 +242,7 @@
                     <thead class="bg-slate-50 text-left text-xs uppercase text-slate-600">
                         <tr>
                             <th class="px-4 py-3">Kamar</th>
-                            <th class="px-4 py-3">Lembaga</th>
+                            <th class="px-4 py-3">Rayon</th>
                             <th class="px-4 py-3">Mulai</th>
                             <th class="px-4 py-3">Selesai</th>
                             <th class="px-4 py-3">Keterangan</th>
@@ -237,7 +252,7 @@
                         @foreach ($santri->riwayatKamar as $riwayat)
                             <tr>
                                 <td class="px-4 py-3 font-medium text-slate-900">{{ $riwayat->kamar->nama }} <span class="text-xs text-slate-500">({{ $riwayat->kamar->kode }})</span></td>
-                                <td class="px-4 py-3 text-slate-600">{{ $riwayat->kamar->lembaga->nama }}</td>
+                                <td class="px-4 py-3 text-slate-600">{{ $riwayat->kamar->rayon?->nama ?? '-' }}</td>
                                 <td class="px-4 py-3 whitespace-nowrap">{{ $riwayat->tanggal_mulai->format('d/m/Y') }}</td>
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     @if ($riwayat->tanggal_selesai)
@@ -338,6 +353,53 @@
                     </tbody>
                 </table>
                 {{ $transaksis->links('vendor.pagination.table-footer') }}
+            </div>
+        @endif
+    </div>
+
+    <div class="card p-5">
+        <div class="mb-3">
+            <p class="text-sm font-semibold text-slate-900">Riwayat Tabungan</p>
+            <p class="mt-1 text-xs text-slate-500">Setoran tunai, pemindahan dari saldo, Midtrans, dan koreksi tabungan santri.</p>
+        </div>
+        <div class="toolbar mb-4 sm:justify-between">
+            <x-search-input wire:model.live.debounce.300ms="tabunganSearch" placeholder="Cari jenis, kanal, atau status..." />
+        </div>
+        @if ($transaksiTabungan->isEmpty())
+            <x-empty-state
+                :title="trim($tabunganSearch) !== '' ? 'Tidak ada transaksi tabungan yang cocok' : 'Belum ada transaksi tabungan'"
+                :description="trim($tabunganSearch) !== '' ? 'Coba kata kunci lain atau kosongkan pencarian.' : 'Setoran dan perubahan saldo tabungan santri akan muncul di sini.'"
+            />
+        @else
+            <div class="table-card">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                        <tr>
+                            <th class="px-4 py-2.5">Waktu</th>
+                            <th class="px-4 py-2.5">Jenis / Kanal</th>
+                            <th class="px-4 py-2.5">Nominal</th>
+                            <th class="px-4 py-2.5">Saldo Tabungan</th>
+                            <th class="px-4 py-2.5">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach ($transaksiTabungan as $tx)
+                            <tr wire:key="transaksi-tabungan-{{ $tx->id }}">
+                                <td class="whitespace-nowrap px-4 py-2.5 text-slate-500">{{ $tx->created_at->format('d/m/Y H:i') }}</td>
+                                <td class="px-4 py-2.5">
+                                    <p class="font-medium text-slate-900">{{ $jenisTransaksiLabel[$tx->jenis] ?? ucwords(str_replace('_', ' ', $tx->jenis)) }}</p>
+                                    <p class="mt-0.5 text-xs text-slate-500">{{ ucwords(str_replace('_', ' ', $tx->kanal)) }}</p>
+                                </td>
+                                <td class="px-4 py-2.5 font-medium {{ $tx->arah === 'kredit' ? 'text-emerald-600' : 'text-red-600' }}">
+                                    {{ $tx->arah === 'kredit' ? '+' : '−' }} Rp {{ number_format($tx->nominal, 0, ',', '.') }}
+                                </td>
+                                <td class="px-4 py-2.5">Rp {{ number_format($tx->saldo_sesudah, 0, ',', '.') }}</td>
+                                <td class="px-4 py-2.5"><span class="badge bg-slate-100 text-slate-600">{{ ucwords(str_replace('_', ' ', $tx->status)) }}</span></td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                {{ $transaksiTabungan->links('vendor.pagination.table-footer') }}
             </div>
         @endif
     </div>

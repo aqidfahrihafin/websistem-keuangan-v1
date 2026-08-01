@@ -4,7 +4,7 @@ namespace App\Livewire\Admin\Kamar;
 
 use App\Livewire\Concerns\WithPerPage;
 use App\Models\Kamar;
-use App\Models\Lembaga;
+use App\Models\Rayon;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -16,10 +16,10 @@ class Index extends Component
     use WithPagination, WithPerPage;
 
     public string $search = '';
-    public ?int $filterLembaga = null;
+    public ?int $filterRayon = null;
     public bool $showModal = false;
     public ?Kamar $editing = null;
-    public ?int $lembaga_id = null;
+    public ?int $rayon_id = null;
     public string $kode = '';
     public string $nama = '';
     public ?string $gedung = null;
@@ -33,7 +33,7 @@ class Index extends Component
         $this->resetPage();
     }
 
-    public function updatingFilterLembaga(): void
+    public function updatingFilterRayon(): void
     {
         $this->resetPage();
     }
@@ -41,7 +41,7 @@ class Index extends Component
     public function openCreate(): void
     {
         $this->editing = null;
-        $this->reset(['lembaga_id', 'kode', 'nama', 'gedung', 'lantai', 'kapasitas', 'jenis_kelamin']);
+        $this->reset(['rayon_id', 'kode', 'nama', 'gedung', 'lantai', 'kapasitas', 'jenis_kelamin']);
         $this->is_active = true;
         $this->resetValidation();
         $this->showModal = true;
@@ -51,7 +51,7 @@ class Index extends Component
     {
         $this->editing = Kamar::findOrFail($id);
         $this->fill($this->editing->only([
-            'lembaga_id', 'kode', 'nama', 'gedung', 'lantai',
+            'rayon_id', 'kode', 'nama', 'gedung', 'lantai',
             'kapasitas', 'jenis_kelamin', 'is_active',
         ]));
         $this->resetValidation();
@@ -61,11 +61,11 @@ class Index extends Component
     public function save(): void
     {
         $data = $this->validate([
-            'lembaga_id' => ['required', 'exists:lembagas,id'],
+            'rayon_id' => ['required', 'exists:rayons,id'],
             'kode' => [
                 'required', 'string', 'max:50',
                 Rule::unique('kamars', 'kode')
-                    ->where(fn ($query) => $query->where('lembaga_id', $this->lembaga_id))
+                    ->where(fn ($query) => $query->where('rayon_id', $this->rayon_id))
                     ->ignore($this->editing?->id),
             ],
             'nama' => ['required', 'string', 'max:255'],
@@ -104,17 +104,17 @@ class Index extends Component
 
         return view('livewire.admin.kamar.index', [
             'title' => 'Data Kamar',
-            'lembagas' => Lembaga::query()->where('is_active', true)->orderBy('nama')->get(),
+            'rayons' => Rayon::query()->where('is_active', true)->orderBy('nama')->get(),
             'kamars' => Kamar::query()
-                ->with('lembaga:id,nama')
+                ->with('rayon:id,nama')
                 ->withCount('santris')
                 ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
                     $query->where('kode', 'like', "%{$search}%")
                         ->orWhere('nama', 'like', "%{$search}%")
                         ->orWhere('gedung', 'like', "%{$search}%")
-                        ->orWhereHas('lembaga', fn ($query) => $query->where('nama', 'like', "%{$search}%"));
+                        ->orWhereHas('rayon', fn ($query) => $query->where('nama', 'like', "%{$search}%"));
                 }))
-                ->when($this->filterLembaga, fn ($query) => $query->where('lembaga_id', $this->filterLembaga))
+                ->when($this->filterRayon, fn ($query) => $query->where('rayon_id', $this->filterRayon))
                 ->orderBy('nama')
                 ->paginate($this->perPage),
         ]);

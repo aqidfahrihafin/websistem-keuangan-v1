@@ -1,4 +1,4 @@
-<div>
+<div class="content-stack">
     <x-warning-banner variant="warning" title="Perubahan di sini bersifat sensitif" class="mb-4">
         Persentase dan status aktif kategori diskon memengaruhi <strong>nominal tagihan</strong> semua santri di kategori tersebut. Perubahan hanya berlaku untuk tagihan yang di-generate <strong>setelah</strong> perubahan disimpan — tagihan yang sudah ada tidak dihitung ulang secara otomatis.
     </x-warning-banner>

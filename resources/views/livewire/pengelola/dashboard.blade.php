@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="content-stack">
     @if ($rekeningMenunggu)
         <x-warning-banner title="Perubahan rekening sedang ditinjau">
             Permintaan perubahan rekening ke <strong>{{ $rekeningMenunggu->bank_nama_baru }} - {{ $rekeningMenunggu->bank_no_rekening_baru }}</strong>

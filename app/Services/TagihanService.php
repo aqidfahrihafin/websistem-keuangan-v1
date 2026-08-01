@@ -22,6 +22,7 @@ class TagihanService
         private WalletService $wallet,
         private SaldoFloorService $saldoFloor,
         private KwitansiService $kwitansi,
+        private PushNotificationService $push,
     ) {}
 
     /**
@@ -159,8 +160,32 @@ class TagihanService
             // a kwitansi resmi for tagihan payments - see KwitansiService.
             $this->kwitansi->terbitkanUntukTagihan($pembayaran);
 
+            if ($sumber === TagihanPembayaran::SUMBER_TUNAI_LANGSUNG) {
+                DB::afterCommit(fn () => $this->notifyPembayaranTunai($locked, $pembayaran));
+            }
+
             return $pembayaran;
         });
+    }
+
+    private function notifyPembayaranTunai(Tagihan $tagihan, TagihanPembayaran $pembayaran): void
+    {
+        $santri = $tagihan->santri;
+        $status = $tagihan->fresh()->status === Tagihan::STATUS_LUNAS ? 'lunas' : 'terbayar sebagian';
+        $body = 'Pembayaran tunai tagihan '.$tagihan->jenisTagihan->nama.' untuk '
+            .$santri->nama.' sebesar Rp'.number_format((int) $pembayaran->nominal, 0, ',', '.')
+            ." berhasil dicatat. Status tagihan: {$status}.";
+
+        foreach ($santri->walis as $wali) {
+            $this->push->notify($wali, 'Pembayaran Tagihan Berhasil', $body, [
+                'type' => 'pembayaran_tagihan_tunai',
+                'santri_id' => $santri->id,
+                'santri_nama' => $santri->nama,
+                'tagihan_id' => $tagihan->id,
+                'pembayaran_id' => $pembayaran->id,
+                'status_tagihan' => $status,
+            ]);
+        }
     }
 
     /**

@@ -92,32 +92,29 @@ it('shows a last-seen label derived from last_seen_at without a dedicated column
     Carbon::setTestNow();
 });
 
-it('lets an admin claim petugas jaga on a device, replacing whoever was there before', function () {
-    $admin1 = makeUserWithRole('admin');
-    $admin2 = makeUserWithRole('admin');
+it('lets an admin assign multiple petugas kios to a device', function () {
+    $admin = makeUserWithRole('admin');
+    $petugas1 = makeUserWithRole('petugas_kios');
+    $petugas2 = makeUserWithRole('petugas_kios');
     $device = Device::factory()->create();
 
-    Livewire::actingAs($admin1)->test(PerangkatIndex::class)
-        ->call('jagaDisini', $device->id);
+    Livewire::actingAs($admin)->test(PerangkatIndex::class)
+        ->call('openEdit', $device->id)
+        ->set('petugas_ids', [$petugas1->id, $petugas2->id])
+        ->call('save')
+        ->assertHasNoErrors();
 
-    expect($device->fresh()->petugas_jaga_id)->toBe($admin1->id)
-        ->and($device->fresh()->petugas_jaga_sejak)->not->toBeNull();
-
-    Livewire::actingAs($admin2)->test(PerangkatIndex::class)
-        ->call('jagaDisini', $device->id);
-
-    expect($device->fresh()->petugas_jaga_id)->toBe($admin2->id);
+    expect($device->petugasTerdaftar()->count())->toBe(2);
 });
 
-it('lets petugas jaga be released, leaving the device unassigned', function () {
+it('does not treat device assignment as an active cash session', function () {
     $admin = makeUserWithRole('admin');
-    $device = Device::factory()->create(['petugas_jaga_id' => $admin->id, 'petugas_jaga_sejak' => now()]);
+    $petugas = makeUserWithRole('petugas_kios');
+    $device = Device::factory()->create();
+    $device->petugasTerdaftar()->attach($petugas->id, ['aktif' => true, 'ditugaskan_at' => now()]);
 
-    Livewire::actingAs($admin)->test(PerangkatIndex::class)
-        ->call('lepasJaga', $device->id);
-
-    expect($device->fresh()->petugas_jaga_id)->toBeNull()
-        ->and($device->fresh()->petugas_jaga_sejak)->toBeNull();
+    expect($device->sesiKasAktif)->toBeNull()
+        ->and($device->petugas_jaga_id)->toBeNull();
 });
 
 it('opens a setup guide showing the kiosk URL and the RFID/browser steps for any device', function () {

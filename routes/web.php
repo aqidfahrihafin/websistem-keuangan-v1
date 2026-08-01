@@ -28,12 +28,17 @@ Route::livewire('/kios/{device:kode_device?}', 'kios.cek-saldo')->name('kios.ind
 Route::livewire('/kios-kantin/{device:kode_device}', 'kios.bayar-kantin')
     ->name('kios-kantin.index')
     ->middleware('throttle:120,1');
+Route::livewire('/kios-tabungan/{device:kode_device}', 'kios.tabungan')
+    ->name('kios-tabungan.index')
+    ->middleware('throttle:120,1');
 
 Route::get('/dashboard', DashboardRedirectController::class)->name('dashboard')->middleware('auth');
 
 Route::livewire('/profil', 'profil.index')->name('profil')->middleware('auth');
 
-Route::post('/midtrans/webhook', MidtransWebhookController::class)->name('midtrans.webhook');
+Route::post('/midtrans/webhook', MidtransWebhookController::class)
+    ->name('midtrans.webhook')
+    ->middleware('throttle:webhook');
 
 // Fallback for hosting where the control panel's cron can't run an
 // arbitrary shell command - see CronTriggerController's doc comment.
@@ -55,9 +60,8 @@ Route::middleware(['auth', 'role:admin|bendahara'])->prefix('admin')->name('admi
     Route::livewire('/kategori-diskon', 'admin.kategori-diskon.index')->name('kategori-diskon.index');
 
     Route::livewire('/transaksi', 'admin.transaksi.index')->name('transaksi.index');
-    Route::livewire('/transaksi/verifikasi', 'admin.transaksi.verifikasi')->name('transaksi.verifikasi');
-
     Route::livewire('/topup', 'admin.topup.index')->name('topup.index');
+    Route::livewire('/sesi-kas', 'admin.sesi-kas.index')->name('sesi-kas.index');
 
     Route::livewire('/penarikan', 'admin.penarikan.index')->name('penarikan.index');
     Route::livewire('/kebijakan-penarikan', 'admin.kebijakan.penarikan-form')->name('kebijakan.penarikan');
@@ -105,6 +109,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::livewire('/users', 'admin.users.index')->name('users.index');
     Route::livewire('/lembaga', 'admin.lembaga.index')->name('lembaga.index');
+    Route::livewire('/rayon', 'admin.rayon.index')->name('rayon.index');
     Route::livewire('/kamar', 'admin.kamar.index')->name('kamar.index');
     Route::livewire('/perangkat', 'admin.perangkat.index')->name('perangkat.index');
     Route::livewire('/kantin', 'admin.kantin.index')->name('kantin.index');
@@ -129,6 +134,18 @@ Route::middleware(['auth', 'role:pengasuh'])->prefix('pengasuh')->name('pengasuh
     Route::livewire('/laporan-santri', 'pengasuh.laporan-santri')->name('laporan');
     Route::get('/laporan-santri-export/excel', [ReportController::class, 'laporanSantriExcel'])->name('laporan.export.excel');
     Route::get('/laporan-santri-export/pdf', [ReportController::class, 'laporanSantriPdf'])->name('laporan.export.pdf');
+});
+
+Route::middleware(['auth', 'role:admin_lembaga|admin_rayon'])->prefix('unit')->name('unit.')->group(function () {
+    Route::livewire('/', 'unit.dashboard')->name('dashboard');
+    Route::livewire('/santri', 'unit.santri-index')->name('santri.index');
+});
+
+Route::middleware(['auth', 'role:petugas_kios'])->prefix('petugas-kios')->name('petugas-kios.')->group(function () {
+    Route::livewire('/', 'petugas-kios.dashboard')->name('dashboard');
+    Route::livewire('/transaksi', 'petugas-kios.dashboard')->name('transaksi');
+    Route::livewire('/tutup-sesi', 'petugas-kios.dashboard')->name('tutup-sesi');
+    Route::livewire('/mutasi', 'petugas-kios.dashboard')->name('mutasi');
 });
 
 Route::middleware(['auth', 'role:wali'])->prefix('wali')->name('wali.')->group(function () {
@@ -182,6 +199,7 @@ Route::middleware(['auth', 'role:dev'])->prefix('dev')->name('dev.')->group(func
     Route::livewire('/tentang', 'dev.tentang')->name('tentang');
     Route::livewire('/instalasi', 'dev.instalasi')->name('instalasi');
     Route::livewire('/deployment', 'dev.deployment')->name('deployment');
+    Route::livewire('/flow-sistem', 'dev.flow-sistem')->name('flow-sistem');
     Route::livewire('/skema-database', 'dev.skema-database')->name('skema-database');
     Route::livewire('/api/wali', 'dev.api-wali')->name('api.wali');
     Route::livewire('/api/kiosk', 'dev.api-kiosk')->name('api.kiosk');

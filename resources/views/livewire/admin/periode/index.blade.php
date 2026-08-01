@@ -1,4 +1,4 @@
-<div>
+<div class="content-stack">
     <x-warning-banner variant="info" title="Periode aktif jadi default saat Generate Tagihan" class="mb-4">
         Hanya satu periode yang bisa aktif dalam satu waktu. Menjadikan periode lain aktif otomatis menonaktifkan periode yang sebelumnya aktif. Periode juga otomatis dinonaktifkan begitu tanggal selesainya lewat, dan periode yang sudah berakhir tidak bisa dihapus lagi.
     </x-warning-banner>

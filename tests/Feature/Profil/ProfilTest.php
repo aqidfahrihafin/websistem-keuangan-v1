@@ -2,7 +2,9 @@
 
 use App\Livewire\Profil\Index as ProfilIndex;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 it('redirects a guest to login when visiting the profile page', function () {
@@ -32,6 +34,30 @@ it('rejects an email already used by another user', function () {
         ->set('email', 'terpakai@pesantren.test')
         ->call('simpanProfil')
         ->assertHasErrors(['email']);
+});
+
+it('lets an authenticated user upload a profile photo', function () {
+    Storage::fake('public');
+    $user = makeUserWithRole('wali');
+
+    Livewire::actingAs($user)->test(ProfilIndex::class)
+        ->set('photo', UploadedFile::fake()->image('profil.jpg', 512, 512)->size(250))
+        ->call('simpanFoto')
+        ->assertHasNoErrors();
+
+    $path = $user->fresh()->avatar_path;
+    expect($path)->not->toBeNull();
+    Storage::disk('public')->assertExists($path);
+});
+
+it('rejects an oversized web profile photo', function () {
+    Storage::fake('public');
+    $user = makeUserWithRole('wali');
+
+    Livewire::actingAs($user)->test(ProfilIndex::class)
+        ->set('photo', UploadedFile::fake()->image('profil.jpg')->size(1200))
+        ->call('simpanFoto')
+        ->assertHasErrors(['photo']);
 });
 
 it('changes the password when the current password is correct and confirmation matches', function () {

@@ -1,4 +1,4 @@
-<div>
+<div class="content-stack">
     @if ($errorHapus)
         <x-alert-banner type="error" :message="$errorHapus" class="mb-4" />
     @endif

@@ -1,4 +1,4 @@
-<div>
+<div class="content-stack">
     <x-warning-banner variant="warning" title="Kebijakan ini membatasi belanja kantin harian santri" class="mb-4">
         Limit di sini adalah batas total nominal yang bisa dibelanjakan santri di kantin per hari (lewat scan QR di aplikasi mobile) - terpisah dari batas minimum saldo yang tersisa. Pastikan kebijakan yang aktif sudah benar sebelum menyimpan atau mengubah status.
     </x-warning-banner>

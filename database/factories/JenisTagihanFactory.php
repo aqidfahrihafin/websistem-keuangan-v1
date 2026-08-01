@@ -12,10 +12,12 @@ class JenisTagihanFactory extends Factory
 {
     public function definition(): array
     {
+        $faker = \Faker\Factory::create();
+
         return [
-            'kode' => fake()->unique()->bothify('JT-####'),
-            'nama' => fake()->words(3, true),
-            'nominal_default' => fake()->numberBetween(50000, 500000),
+            'kode' => $faker->unique()->bothify('JT-####'),
+            'nama' => $faker->words(3, true),
+            'nominal_default' => $faker->numberBetween(50000, 500000),
             'periode' => JenisTagihan::PERIODE_BULANAN,
             'is_active' => true,
         ];

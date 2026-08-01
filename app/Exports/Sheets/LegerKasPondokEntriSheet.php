@@ -71,6 +71,7 @@ class LegerKasPondokEntriSheet implements FromArray, WithColumnWidths, WithEvent
         $rows[] = ['', '', '', '', '', '', ''];
         $rows[] = ['', 'Kas Pondok Saat Ini', '', '', '', '', $this->leger['kas_saat_ini']];
         $rows[] = ['', '- Titipan Saldo Santri', '', '', '', '', $this->leger['saldo_santri_saat_ini']];
+        $rows[] = ['', '- Titipan Tabungan Santri', '', '', '', '', $this->leger['saldo_tabungan_saat_ini']];
         $rows[] = ['', '- Titipan Saldo Kantin', '', '', '', '', $this->leger['saldo_kantin_belum_cair']];
         $rows[] = ['', '= Uang Milik Pondok', '', '', '', '', $this->leger['uang_milik_pondok']];
 

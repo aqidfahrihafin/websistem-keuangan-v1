@@ -15,7 +15,7 @@
     ];
 @endphp
 
-<div class="space-y-4">
+<div class="content-stack">
     @if (! $requests)
         <x-warning-banner title="Data santri belum tertaut">Akun Anda belum tertaut dengan data santri.</x-warning-banner>
     @else

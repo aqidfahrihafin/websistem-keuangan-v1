@@ -1,4 +1,4 @@
-<div class="max-w-lg">
+<div class="content-stack max-w-lg">
     @if (! $santri)
         <x-warning-banner title="Data santri belum tertaut">
             Belum ada santri yang tertaut dengan akun Anda. Hubungi petugas pondok sebelum melakukan top up.

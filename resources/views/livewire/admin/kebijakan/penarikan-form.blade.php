@@ -1,4 +1,4 @@
-<div>
+<div class="content-stack">
     <x-warning-banner variant="warning" title="Kebijakan ini mengatur uang tunai yang bisa ditarik santri" class="mb-4">
         Jam operasional dan limit harian di sini langsung membatasi penarikan tunai santri di kiosk. Pastikan kebijakan yang aktif sudah benar sebelum menyimpan atau mengubah status.
     </x-warning-banner>

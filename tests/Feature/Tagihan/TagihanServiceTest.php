@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\WaliSantri;
 use App\Services\TagihanService;
 use App\Services\WalletService;
+use App\Services\PushNotificationService;
 use Illuminate\Support\Facades\Bus;
 
 it('generates one tagihan per active santri and is a no-op on re-run for the same period', function () {
@@ -135,6 +136,46 @@ it('issues a kwitansi resmi for a cash (tunai_langsung) tagihan payment, with no
         ->and($kwitansi->nominal)->toBe(150000)
         ->and($kwitansi->transaksi_id)->toBeNull()
         ->and($kwitansi->nomor_kwitansi)->toStartWith('KWT-'.now()->format('Y').'-');
+});
+
+it('notifies wali with a valid tagihan destination after a cash payment', function () {
+    $santri = Santri::factory()->create();
+    $wali = User::factory()->create();
+    WaliSantri::create([
+        'user_id' => $wali->id,
+        'santri_id' => $santri->id,
+        'hubungan' => 'wali',
+        'is_auto_generated' => false,
+        'is_primary' => true,
+    ]);
+    $jenis = JenisTagihan::factory()->create(['nama' => 'Syahriah', 'nominal_default' => 100000]);
+    $tagihan = Tagihan::create([
+        'santri_id' => $santri->id,
+        'jenis_tagihan_id' => $jenis->id,
+        'periode_label' => '2026-08',
+        'nominal' => 100000,
+        'nominal_terbayar' => 0,
+        'status' => Tagihan::STATUS_BELUM_LUNAS,
+    ]);
+
+    $push = $this->mock(PushNotificationService::class);
+    $push->shouldReceive('notify')
+        ->once()
+        ->with(
+            Mockery::on(fn ($u) => $u->is($wali)),
+            'Pembayaran Tagihan Berhasil',
+            Mockery::type('string'),
+            Mockery::on(fn ($data) => $data['type'] === 'pembayaran_tagihan_tunai'
+                && $data['santri_id'] === $santri->id
+                && $data['tagihan_id'] === $tagihan->id
+                && ! isset($data['transaksi_id'])),
+        );
+
+    app(TagihanService::class)->applyPembayaran(
+        $tagihan,
+        100000,
+        TagihanPembayaran::SUMBER_TUNAI_LANGSUNG,
+    );
 });
 
 it('issues a kwitansi resmi linked to the debit transaksi when a tagihan is paid from saldo', function () {

@@ -1,4 +1,4 @@
-<div class="space-y-5">
+<div class="content-stack">
     <div class="grid gap-4 sm:grid-cols-3">
         <x-stat-card label="Saldo saat ini" :value="'Rp '.number_format($unitUsaha->saldo_unit, 0, ',', '.')" hint="Saldo tersedia milik unit usaha." tone="teal" icon="wallet" />
         <x-stat-card label="Pemasukan periode filter" :value="'Rp '.number_format($totalMasuk, 0, ',', '.')" hint="Total pembayaran masuk sesuai filter." tone="emerald" icon="activity" />

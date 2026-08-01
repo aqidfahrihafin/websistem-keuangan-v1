@@ -1,4 +1,4 @@
-<div>
+<div class="content-stack">
     <x-warning-banner variant="info" title="Unit usaha dan pembayaran QR" class="mb-4">
         Kelola kantin/unit usaha pondok dan cetak kode QR-nya agar wali bisa memindai lalu membayar langsung dari saldo santri.
     </x-warning-banner>

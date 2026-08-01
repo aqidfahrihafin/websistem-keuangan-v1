@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use PDO;
 use RuntimeException;
@@ -22,10 +23,17 @@ class BackupService
 
     public const KODE_KONFIRMASI_PULIHKAN = 'PULIHKAN';
 
-    public function __construct(private BackupSettingsService $settings) {}
+    public const MANIFEST_ENTRY = 'backup-manifest.json';
+
+    public const MANIFEST_VERSION = 1;
+
+    public function __construct(
+        private BackupSettingsService $settings,
+        private DataSnapshotService $snapshot,
+    ) {}
 
     /**
-     * @return array<int, array{nama: string, ukuran: int, ukuran_label: string, dibuat_at: Carbon}>
+     * @return array<int, array{nama: string, ukuran: int, ukuran_label: string, dibuat_at: Carbon, kompatibilitas: array}>
      */
     public function daftar(): array
     {
@@ -33,12 +41,17 @@ class BackupService
 
         return collect($disk->files($this->direktori()))
             ->filter(fn (string $path) => str_ends_with($path, '.zip'))
-            ->map(fn (string $path) => [
-                'nama' => basename($path),
-                'ukuran' => $disk->size($path),
-                'ukuran_label' => $this->formatUkuran($disk->size($path)),
-                'dibuat_at' => Carbon::createFromTimestamp($disk->lastModified($path)),
-            ])
+            ->map(function (string $path) use ($disk) {
+                $nama = basename($path);
+
+                return [
+                    'nama' => $nama,
+                    'ukuran' => $disk->size($path),
+                    'ukuran_label' => $this->formatUkuran($disk->size($path)),
+                    'dibuat_at' => Carbon::createFromTimestamp($disk->lastModified($path)),
+                    'kompatibilitas' => $this->inspeksi($nama),
+                ];
+            })
             ->sortByDesc('dibuat_at')
             ->values()
             ->all();
@@ -93,8 +106,109 @@ class BackupService
             throw new RuntimeException('Perintah backup selesai tetapi berkas hasilnya tidak ditemukan.');
         }
 
-        $this->validasiArsip(Storage::disk(self::DISK)->path($this->pathAman($backupTerbaru)));
+        $zipPath = Storage::disk(self::DISK)->path($this->pathAman($backupTerbaru));
+        $this->tambahkanManifest($zipPath);
+        $this->validasiArsip($zipPath);
         activity('backup')->causedBy(Auth::user())->log('Membuat backup baru');
+    }
+
+    /**
+     * Read-only compatibility check used before a destructive restore.
+     *
+     * @return array{status: string, label: string, pesan: string, manifest: ?array, pending_migrations: array, unknown_migrations: array, changed_migrations: array}
+     */
+    public function inspeksi(string $nama): array
+    {
+        try {
+            $path = $this->pathAman($nama);
+            if (! Storage::disk(self::DISK)->exists($path)) {
+                throw new RuntimeException("Backup {$nama} tidak ditemukan.");
+            }
+
+            $zip = new ZipArchive;
+            if ($zip->open(Storage::disk(self::DISK)->path($path)) !== true) {
+                throw new RuntimeException('Arsip ZIP tidak dapat dibuka.');
+            }
+
+            try {
+                if ($this->namaDumpDalamZip($zip) === null) {
+                    throw new RuntimeException('Dump database tidak ditemukan.');
+                }
+
+                $manifest = $this->bacaManifest($zip);
+            } finally {
+                $zip->close();
+            }
+
+            if ($manifest === null) {
+                return $this->hasilInspeksi(
+                    'legacy',
+                    'Backup lama',
+                    'Tidak memiliki manifest versi. Restore tetap dapat dilakukan, tetapi wajib diverifikasi karena kompatibilitas awal tidak dapat dipastikan.',
+                );
+            }
+
+            if (($manifest['format_version'] ?? null) !== self::MANIFEST_VERSION) {
+                return $this->hasilInspeksi(
+                    'tidak_kompatibel',
+                    'Format tidak didukung',
+                    'Versi manifest backup tidak didukung oleh aplikasi ini.',
+                    $manifest,
+                );
+            }
+
+            $applied = collect($manifest['migrations']['applied'] ?? [])
+                ->filter(fn ($migration) => is_string($migration))
+                ->values();
+            $available = collect($this->migrationTersedia());
+            $unknown = $applied->diff($available)->values()->all();
+            $pending = $available->diff($applied)->values()->all();
+            $backupHashes = collect($manifest['migrations']['hashes'] ?? []);
+            $currentHashes = collect($this->migrationHashes());
+            $changed = $applied
+                ->filter(fn (string $migration) => $backupHashes->has($migration)
+                    && $currentHashes->has($migration)
+                    && ! hash_equals((string) $backupHashes->get($migration), (string) $currentHashes->get($migration)))
+                ->values()
+                ->all();
+
+            if ($unknown !== [] || $changed !== []) {
+                return $this->hasilInspeksi(
+                    'tidak_kompatibel',
+                    $changed !== [] ? 'Riwayat migration berubah' : 'Backup lebih baru',
+                    $changed !== []
+                        ? 'Isi migration lama berbeda dari saat backup dibuat. Gunakan commit aplikasi yang tercatat pada manifest.'
+                        : 'Backup memakai migration yang tidak tersedia pada kode aplikasi ini. Deploy versi kode yang sesuai sebelum restore.',
+                    $manifest,
+                    $pending,
+                    $unknown,
+                    $changed,
+                );
+            }
+
+            if ($pending !== []) {
+                return $this->hasilInspeksi(
+                    'perlu_migrasi',
+                    'Aman, perlu upgrade schema',
+                    count($pending).' migration akan dijalankan otomatis setelah database dipulihkan.',
+                    $manifest,
+                    $pending,
+                );
+            }
+
+            return $this->hasilInspeksi(
+                'cocok',
+                'Kompatibel',
+                'Versi schema backup cocok dengan kode aplikasi saat ini.',
+                $manifest,
+            );
+        } catch (Throwable $exception) {
+            return $this->hasilInspeksi(
+                'rusak',
+                'Tidak dapat digunakan',
+                $this->pesanAman($exception->getMessage()),
+            );
+        }
     }
 
     /**
@@ -140,7 +254,7 @@ class BackupService
                     'lokasi' => Storage::disk(self::DISK)->path($this->direktori()),
                     'pesan' => 'MySQL dan lokasi penyimpanan backup siap digunakan.',
                 ];
-            } catch (RuntimeException $exception) {
+            } catch (Throwable $exception) {
                 if ($this->settings->mode() === BackupSettingsService::MODE_CLI) {
                     return [
                         'siap' => false,
@@ -229,18 +343,41 @@ class BackupService
             throw new RuntimeException("Backup {$nama} tidak ditemukan.");
         }
 
+        $inspeksi = $this->inspeksi($nama);
+        if (in_array($inspeksi['status'], ['rusak', 'tidak_kompatibel'], true)) {
+            throw new RuntimeException('Backup tidak dapat dipulihkan: '.$inspeksi['pesan']);
+        }
+
         $penyebab = Auth::user();
-        activity('backup')->causedBy($penyebab)->withProperties(['nama' => $nama])->log('Memulai pemulihan database dari backup');
+        activity('backup')->causedBy($penyebab)->withProperties([
+            'nama' => $nama,
+            'kompatibilitas' => $inspeksi['status'],
+            'pending_migrations' => $inspeksi['pending_migrations'],
+        ])->log('Memulai pemulihan database dari backup');
 
         $this->buat();
 
-        $dumpPath = $this->ekstrakDumpDatabase(Storage::disk(self::DISK)->path($path));
+        $zipPath = Storage::disk(self::DISK)->path($path);
+        $this->validasiArsip($zipPath, verifikasiChecksum: true);
+        $dumpPath = $this->ekstrakDumpDatabase($zipPath);
 
         Artisan::call('down');
 
         try {
             $this->importDump($dumpPath);
-            activity('backup')->causedBy($penyebab)->withProperties(['nama' => $nama])->log('Pemulihan database berhasil');
+            $this->migrasikanSetelahRestore();
+            $hasilIntegritas = $this->periksaIntegritasSchema();
+            $this->snapshot->markRestored(
+                $nama,
+                $inspeksi['manifest']['created_at'] ?? null,
+                $penyebab?->name,
+            );
+
+            activity('backup')->causedBy($penyebab)->withProperties([
+                'nama' => $nama,
+                'migration_dijalankan' => count($inspeksi['pending_migrations']),
+                'integritas' => $hasilIntegritas,
+            ])->log('Pemulihan database berhasil');
         } catch (RuntimeException $exception) {
             activity('backup')->causedBy($penyebab)->withProperties(['nama' => $nama, 'error' => $exception->getMessage()])->log('Pemulihan database gagal');
 
@@ -410,6 +547,10 @@ class BackupService
 
             $zip->addFile($dumpPath, 'db-dumps/mysql-native-'.now()->format('Y-m-d-H-i-s').'.sql');
             $this->tambahkanBerkasPrivatKeZip($zip);
+            $zip->addFromString(
+                self::MANIFEST_ENTRY,
+                $this->encodeManifest($this->buatManifest(hash_file('sha256', $dumpPath))),
+            );
 
             if (! $zip->close()) {
                 throw new RuntimeException('Gagal menyelesaikan arsip ZIP backup.');
@@ -563,7 +704,7 @@ class BackupService
         }
     }
 
-    private function validasiArsip(string $zipPath): void
+    private function validasiArsip(string $zipPath, bool $verifikasiChecksum = false): void
     {
         $zip = new ZipArchive;
 
@@ -572,12 +713,213 @@ class BackupService
         }
 
         try {
-            if ($this->namaDumpDalamZip($zip) === null) {
+            $dumpEntry = $this->namaDumpDalamZip($zip);
+            if ($dumpEntry === null) {
                 throw new RuntimeException('Berkas backup tidak memuat dump database.');
+            }
+
+            if ($verifikasiChecksum) {
+                $manifest = $this->bacaManifest($zip);
+                $checksum = $manifest['database_dump_sha256'] ?? null;
+
+                if (is_string($checksum) && $checksum !== '') {
+                    $aktual = $this->checksumEntry($zip, $dumpEntry);
+                    if (! hash_equals($checksum, $aktual)) {
+                        throw new RuntimeException('Checksum dump database tidak cocok. Arsip mungkin rusak atau telah diubah.');
+                    }
+                }
             }
         } finally {
             $zip->close();
         }
+    }
+
+    private function tambahkanManifest(string $zipPath): void
+    {
+        $zip = new ZipArchive;
+        if ($zip->open($zipPath) !== true) {
+            throw new RuntimeException('Arsip backup tidak dapat dibuka untuk menambahkan manifest.');
+        }
+
+        try {
+            $dumpEntry = $this->namaDumpDalamZip($zip);
+            if ($dumpEntry === null) {
+                throw new RuntimeException('Dump database tidak ditemukan saat membuat manifest.');
+            }
+
+            $manifest = $this->buatManifest($this->checksumEntry($zip, $dumpEntry));
+            if (! $zip->addFromString(self::MANIFEST_ENTRY, $this->encodeManifest($manifest))) {
+                throw new RuntimeException('Manifest backup tidak dapat ditulis.');
+            }
+        } finally {
+            $zip->close();
+        }
+    }
+
+    private function buatManifest(string $dumpChecksum): array
+    {
+        return [
+            'format_version' => self::MANIFEST_VERSION,
+            'created_at' => now()->toIso8601String(),
+            'application' => [
+                'name' => (string) config('app.name'),
+                'version' => (string) config('app.version', 'unknown'),
+                'commit' => (string) config('app.commit', 'unknown'),
+                'laravel' => app()->version(),
+                'php' => PHP_VERSION,
+            ],
+            'database' => [
+                'driver' => (string) config('database.default'),
+            ],
+            'migrations' => [
+                'applied' => $this->migrationTerpasang(),
+                'available' => $this->migrationTersedia(),
+                'hashes' => $this->migrationHashes(),
+            ],
+            'database_dump_sha256' => $dumpChecksum,
+        ];
+    }
+
+    private function bacaManifest(ZipArchive $zip): ?array
+    {
+        $raw = $zip->getFromName(self::MANIFEST_ENTRY);
+        if ($raw === false) {
+            return null;
+        }
+
+        $manifest = json_decode($raw, true);
+        if (! is_array($manifest)) {
+            throw new RuntimeException('Manifest backup bukan JSON yang valid.');
+        }
+
+        return $manifest;
+    }
+
+    private function encodeManifest(array $manifest): string
+    {
+        $json = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+        return $json.PHP_EOL;
+    }
+
+    private function checksumEntry(ZipArchive $zip, string $entry): string
+    {
+        $stream = $zip->getStream($entry);
+        if ($stream === false) {
+            throw new RuntimeException('Dump database di dalam arsip tidak dapat dibaca.');
+        }
+
+        try {
+            $hash = hash_init('sha256');
+            hash_update_stream($hash, $stream);
+
+            return hash_final($hash);
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function migrationTersedia(): array
+    {
+        return collect(glob(database_path('migrations/*.php')) ?: [])
+            ->map(fn (string $path) => pathinfo($path, PATHINFO_FILENAME))
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function migrationHashes(): array
+    {
+        return collect(glob(database_path('migrations/*.php')) ?: [])
+            ->mapWithKeys(fn (string $path) => [
+                pathinfo($path, PATHINFO_FILENAME) => hash_file('sha256', $path),
+            ])
+            ->sortKeys()
+            ->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function migrationTerpasang(): array
+    {
+        if (! Schema::hasTable('migrations')) {
+            return [];
+        }
+
+        return DB::table('migrations')
+            ->orderBy('migration')
+            ->pluck('migration')
+            ->map(fn ($migration) => (string) $migration)
+            ->all();
+    }
+
+    private function migrasikanSetelahRestore(): void
+    {
+        DB::purge(config('database.default'));
+
+        $exitCode = Artisan::call('migrate', ['--force' => true]);
+        if ($exitCode !== 0) {
+            throw new RuntimeException('Database berhasil dibaca, tetapi upgrade schema gagal. Aplikasi belum aman digunakan.');
+        }
+    }
+
+    /**
+     * @return array{migration_count: int, core_tables: array<int, string>}
+     */
+    private function periksaIntegritasSchema(): array
+    {
+        DB::purge(config('database.default'));
+
+        $missingMigrations = collect($this->migrationTersedia())
+            ->diff($this->migrationTerpasang())
+            ->values()
+            ->all();
+
+        if ($missingMigrations !== []) {
+            throw new RuntimeException('Pemeriksaan integritas gagal: masih ada migration yang belum terpasang.');
+        }
+
+        $coreTables = ['users', 'santris', 'saldo_santris', 'transaksis', 'tagihans', 'migrations'];
+        $missingTables = collect($coreTables)
+            ->reject(fn (string $table) => Schema::hasTable($table))
+            ->values()
+            ->all();
+
+        if ($missingTables !== []) {
+            throw new RuntimeException('Pemeriksaan integritas gagal: tabel inti tidak ditemukan: '.implode(', ', $missingTables).'.');
+        }
+
+        return [
+            'migration_count' => count($this->migrationTerpasang()),
+            'core_tables' => $coreTables,
+        ];
+    }
+
+    private function hasilInspeksi(
+        string $status,
+        string $label,
+        string $pesan,
+        ?array $manifest = null,
+        array $pending = [],
+        array $unknown = [],
+        array $changed = [],
+    ): array {
+        return [
+            'status' => $status,
+            'label' => $label,
+            'pesan' => $pesan,
+            'manifest' => $manifest,
+            'pending_migrations' => $pending,
+            'unknown_migrations' => $unknown,
+            'changed_migrations' => $changed,
+        ];
     }
 
     private function namaDumpDalamZip(ZipArchive $zip): ?string
@@ -707,14 +1049,26 @@ class BackupService
         }
     }
 
-    private function ujiBinary(string $binary): void
+    protected function ujiBinary(string $binary): void
     {
-        $process = new Process([$binary, '--version']);
-        $process->setTimeout(10);
-        $process->run();
+        try {
+            $process = new Process([$binary, '--version']);
+            $process->setTimeout(10);
+            $process->run();
 
-        if (! $process->isSuccessful()) {
-            throw new RuntimeException("Binary database tidak dapat dijalankan: {$binary}.");
+            if (! $process->isSuccessful()) {
+                throw new RuntimeException("Binary database tidak dapat dijalankan: {$binary}.");
+            }
+        } catch (Throwable $exception) {
+            if ($exception instanceof \Symfony\Component\Process\Exception\LogicException) {
+                throw new RuntimeException(
+                    'PHP pada hosting tidak dapat menjalankan proses sistem (proc_open). Mode backup akan menggunakan fallback PHP/PDO.',
+                    0,
+                    $exception,
+                );
+            }
+
+            throw new RuntimeException("Binary database tidak dapat dijalankan: {$binary}.", 0, $exception);
         }
     }
 

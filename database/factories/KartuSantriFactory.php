@@ -13,11 +13,13 @@ class KartuSantriFactory extends Factory
 {
     public function definition(): array
     {
+        $faker = \Faker\Factory::create();
+
         return [
             'santri_id' => Santri::factory(),
-            'nomor_kartu' => fake()->unique()->numerify('KRT-######'),
-            'uid_kartu' => fake()->unique()->bothify('UID-????????'),
-            'fingerprint_template_ref' => fake()->unique()->bothify('FP-????????'),
+            'nomor_kartu' => $faker->unique()->numerify('KRT-######'),
+            'uid_kartu' => $faker->unique()->bothify('UID-????????'),
+            'fingerprint_template_ref' => $faker->unique()->bothify('FP-????????'),
             'status' => KartuSantri::STATUS_AKTIF,
             'diaktifkan_at' => now(),
         ];

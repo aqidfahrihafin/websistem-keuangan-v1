@@ -29,6 +29,14 @@ class Tagihan extends Model
     protected function casts(): array
     {
         return [
+            'santri_id' => 'integer',
+            'jenis_tagihan_id' => 'integer',
+            'generated_by' => 'integer',
+            'kategori_diskon_id' => 'integer',
+            'dibatalkan_oleh' => 'integer',
+            'nominal' => 'integer',
+            'nominal_terbayar' => 'integer',
+            'nominal_sebelum_diskon' => 'integer',
             'jatuh_tempo' => 'date',
             'dibatalkan_at' => 'datetime',
             'reminder_terkirim_at' => 'datetime',

@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="content-stack">
     <form wire:submit="save" class="space-y-6">
         <x-form-section title="Data Diri" description="Identitas dasar santri sesuai dokumen resmi.">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -30,8 +30,8 @@
             </x-form-field>
         </x-form-section>
 
-        <x-form-section title="Status & Lembaga" description="Menentukan apakah santri ikut dihitung pada tagihan dan laporan.">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <x-form-section title="Status, Lembaga & Rayon" description="Lembaga pendidikan dan rayon tempat tinggal berdiri terpisah.">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <x-form-field
                     label="Status"
                     :error="$errors->first('status')"
@@ -56,12 +56,20 @@
                         @endforeach
                     </select>
                 </x-form-field>
+                <x-form-field label="Rayon" :error="$errors->first('rayon_id')">
+                    <select wire:model.live="rayon_id" class="field-input">
+                        <option value="">Belum ditempatkan</option>
+                        @foreach ($rayons as $rayon)
+                            <option value="{{ $rayon->id }}">{{ $rayon->nama }}</option>
+                        @endforeach
+                    </select>
+                </x-form-field>
                 <x-form-field
                     label="Kamar"
                     :error="$errors->first('kamar_id')"
-                    :hint="$lembaga_id ? 'Hanya kamar aktif pada lembaga yang dipilih.' : 'Pilih lembaga terlebih dahulu.'"
+                    :hint="$rayon_id ? 'Hanya kamar aktif pada rayon yang dipilih.' : 'Pilih rayon terlebih dahulu.'"
                 >
-                    <select wire:model="kamar_id" class="field-input" @disabled(! $lembaga_id)>
+                    <select wire:model="kamar_id" class="field-input" @disabled(! $rayon_id)>
                         <option value="">Belum ditempatkan</option>
                         @foreach ($kamars as $kamar)
                             <option

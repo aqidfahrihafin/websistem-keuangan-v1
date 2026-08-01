@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="content-stack">
     {{-- Filter --}}
     <div class="card">
         <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -119,8 +119,9 @@
     @php
         $kasTotal = max($leger['kas_saat_ini'], 1);
         $pctSantri = $leger['kas_saat_ini'] > 0 ? min(100, round($leger['saldo_santri_saat_ini'] / $kasTotal * 100, 1)) : 0;
+        $pctTabungan = $leger['kas_saat_ini'] > 0 ? min(100, round($leger['saldo_tabungan_saat_ini'] / $kasTotal * 100, 1)) : 0;
         $pctKantin = $leger['kas_saat_ini'] > 0 ? min(100, round($leger['saldo_kantin_belum_cair'] / $kasTotal * 100, 1)) : 0;
-        $pctMilik = max(0, round(100 - $pctSantri - $pctKantin, 1));
+        $pctMilik = max(0, round(100 - $pctSantri - $pctTabungan - $pctKantin, 1));
         $milikNegatif = $leger['uang_milik_pondok'] < 0;
     @endphp
     <div class="card">
@@ -137,11 +138,18 @@
              desktop) - the +/-/= sign lives in each card's own label
              instead of a separate connector column, so there's nothing
              that can end up orphaned on its own line when it wraps. --}}
-        <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <div class="rounded-xl border border-slate-200 bg-white p-4">
                 <p class="text-xs text-slate-500">Kas Pondok Saat Ini</p>
                 <p class="mt-1 text-lg font-bold text-slate-900">
                     Rp {{ number_format($leger['kas_saat_ini'], 0, ',', '.') }}
+                </p>
+            </div>
+
+            <div class="rounded-xl border border-violet-200 bg-violet-50 p-4">
+                <p class="text-xs text-violet-700">Titipan Tabungan Santri</p>
+                <p class="mt-1 text-lg font-bold text-violet-700">
+                    Rp {{ number_format($leger['saldo_tabungan_saat_ini'], 0, ',', '.') }}
                 </p>
             </div>
 
@@ -176,7 +184,7 @@
 
         @if ($milikNegatif)
             <x-warning-banner variant="danger" title="Selisih kas perlu ditelusuri" class="mt-3">
-                Angka ini negatif &mdash; titipan (saldo santri + kantin) lebih besar dari kas yang tercatat. Perlu ditelusuri, kemungkinan ada kas yang belum tercatat atau selisih di lapangan.
+                Angka ini negatif &mdash; titipan (saldo belanja + tabungan santri + kantin) lebih besar dari kas yang tercatat. Perlu ditelusuri, kemungkinan ada kas yang belum tercatat atau selisih di lapangan.
             </x-warning-banner>
         @else
             {{-- Proportion bar --}}

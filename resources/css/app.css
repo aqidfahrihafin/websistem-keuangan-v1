@@ -19,6 +19,47 @@
     --app-corner-radius: 6px;
 }
 
+@keyframes table-action-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes table-loading-slide {
+    from { transform: translateX(0); }
+    to { transform: translateX(194%); }
+}
+
+.app-request-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10000;
+    width: 100%;
+    height: 2px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease;
+}
+
+.app-request-progress.is-active {
+    opacity: 1;
+}
+
+.app-request-progress::after {
+    display: block;
+    width: 32%;
+    height: 100%;
+    border-radius: 9999px;
+    background: #0d9488;
+    animation: app-request-slide .85s ease-in-out infinite alternate;
+    content: '';
+}
+
+@keyframes app-request-slide {
+    from { transform: translateX(-15%); }
+    to { transform: translateX(228%); }
+}
+
 /* Apins Control adaptation shared by every authenticated role. Navigation
    and permissions stay role-specific; only the visual shell is unified. */
 .control-shell-page {
@@ -66,7 +107,7 @@
     min-height: 2.55rem;
     border-radius: .65rem;
     padding-block: .6rem;
-    color: #aebaca;
+    color: #c3ceda;
     font-size: .8125rem;
     white-space: nowrap;
 }
@@ -110,6 +151,34 @@
     --admin-paper: #f5f7f5;
 }
 
+.control-shell-page .app-content {
+    min-width: 0;
+}
+
+.control-shell-page .app-content > * {
+    min-width: 0;
+}
+
+.control-shell-page .content-stack {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.control-shell-page .content-stack > :is(.toolbar, .table-card, .card) {
+    margin-block: 0;
+}
+
+.control-shell-page .content-stack > :is(.alert-banner, .warning-banner) {
+    margin-bottom: 0;
+}
+
+/* Margin lama pada pemanggil tidak boleh menggandakan ritme content-stack. */
+.control-shell-page .content-stack > .app-notice {
+    margin-block: 0;
+}
+
 .control-shell-page .card,
 .control-shell-page .table-card,
 .control-shell-page .toolbar,
@@ -138,6 +207,11 @@
 .control-shell-page .table-card table {
     min-width: 48rem;
     font-size: 0.75rem;
+}
+
+.control-shell-page .table-card {
+    max-width: 100%;
+    overscroll-behavior-inline: contain;
 }
 
 .control-shell-page .table-card :is(th, td) {
@@ -284,6 +358,42 @@
 
     .control-shell-page .toolbar :is(.btn-primary, .btn-secondary) {
         width: 100%;
+    }
+
+    .control-shell-page main {
+        padding: 1rem;
+    }
+
+    .control-shell-page .content-stack {
+        gap: .875rem;
+    }
+
+    .control-shell-page .app-content .card {
+        padding: 1rem;
+    }
+
+    .control-shell-page .app-content .toolbar {
+        padding: .875rem;
+    }
+
+    .control-shell-page .app-content :is(.card, .toolbar, .table-card) {
+        border-radius: .875rem;
+    }
+
+    .control-shell-page .app-content :is(p, li) {
+        line-height: 1.55;
+    }
+
+    .control-shell-page .app-content .table-card::after {
+        position: sticky;
+        right: 0;
+        display: block;
+        width: 2.5rem;
+        height: 0;
+        margin-left: auto;
+        background: linear-gradient(to right, transparent, rgb(255 255 255 / 80%));
+        content: '';
+        pointer-events: none;
     }
 
     .control-shell-page .admin-control-welcome h1 {
@@ -476,13 +586,13 @@
         @apply inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700;
     }
     .table-action-icon {
-        @apply relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white p-0 text-slate-600 shadow-xs transition hover:-translate-y-px hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600;
+        @apply relative inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-transparent bg-slate-50 p-0 text-slate-500 transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-wait disabled:opacity-65;
     }
     .table-action-icon.table-action-danger {
         @apply border-red-100 text-red-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus-visible:outline-red-600;
     }
     .table-action-icon svg {
-        @apply size-4.5 pointer-events-none;
+        @apply size-3.75 pointer-events-none;
     }
 
     /* Server-rendered fallback for Livewire morphs. The old implementation
@@ -491,7 +601,7 @@
        from the very first paint; JS then replaces the fallback with the
        action-specific SVG without any text flash. */
     .table-card :is(.btn-link, .btn-link-danger) {
-        @apply relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white p-0 text-slate-600 shadow-xs transition hover:-translate-y-px hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700 hover:shadow-sm;
+        @apply relative inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-transparent bg-slate-50 p-0 text-slate-500 transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700;
         font-size: 0;
         line-height: 0;
     }
@@ -499,13 +609,33 @@
         @apply border-red-100 text-red-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700;
     }
     .table-card :is(.btn-link, .btn-link-danger):not([data-action-icon])::before {
-        width: 1.125rem;
-        height: 1.125rem;
+        width: .9375rem;
+        height: .9375rem;
         background-color: currentColor;
         content: '';
         /* Neutral action icon shown only during the very short Livewire
            server-DOM phase before the specific icon mapping runs. */
         mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='5' cy='12' r='1.75'/%3E%3Ccircle cx='12' cy='12' r='1.75'/%3E%3Ccircle cx='19' cy='12' r='1.75'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
+    .table-action-icon[data-action-loading='true'] svg {
+        animation: table-action-spin .7s linear infinite;
+    }
+    .table-card.table-is-loading {
+        position: relative;
+    }
+    .table-card.table-is-loading::before {
+        position: sticky;
+        top: 0;
+        left: 0;
+        z-index: 20;
+        display: block;
+        width: 34%;
+        height: 2px;
+        margin-bottom: -2px;
+        border-radius: 9999px;
+        background: var(--color-teal-600);
+        animation: table-loading-slide 1s ease-in-out infinite alternate;
+        content: '';
     }
     .card {
         @apply border border-white/80 bg-white/90 p-6 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm;

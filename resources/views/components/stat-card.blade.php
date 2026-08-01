@@ -67,6 +67,9 @@
                         @case('users')
                             <path stroke-linecap="round" stroke-linejoin="round" d="M16 20a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4m6-8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7-1a3 3 0 0 0 0-6m3 15a4 4 0 0 0-3-3.87" />
                             @break
+                        @case('room')
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 21V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16M4 21h16M8 21v-5h8v5M8 8h3v3H8V8Zm5 0h3v3h-3V8Z" />
+                            @break
                         @case('activity')
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l2.5-6 5 12 2.5-6h4" />
                             @break

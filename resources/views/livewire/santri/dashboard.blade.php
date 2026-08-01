@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="content-stack">
     @if (! $santri)
         <x-warning-banner title="Data santri belum tertaut">
             Akun Anda belum tertaut dengan data santri. Hubungi petugas pondok agar informasi saldo dan tagihan dapat ditampilkan.

@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 #[Fillable([
-    'uuid', 'user_id', 'santri_id', 'tagihan_id', 'nominal_diminta', 'midtrans_order_id',
+    'uuid', 'user_id', 'santri_id', 'tagihan_id', 'tujuan', 'transaksi_tabungan_id', 'nominal_diminta', 'midtrans_order_id',
     'midtrans_transaction_id', 'snap_token', 'redirect_url', 'status', 'nominal_potongan_tagihan',
     'nominal_ke_saldo', 'biaya_midtrans', 'biaya_ditanggung_wali', 'paid_at', 'raw_notification',
     'payment_type', 'va_bank', 'va_number', 'qr_url', 'expiry_time',
@@ -32,6 +32,12 @@ class TopupWali extends Model
     public const STATUS_CANCELLED = 'cancelled';
 
     public const STATUS_REFUNDED = 'refunded';
+
+    public const TUJUAN_SALDO = 'saldo';
+
+    public const TUJUAN_TAGIHAN = 'tagihan';
+
+    public const TUJUAN_TABUNGAN = 'tabungan';
 
     protected static function booted(): void
     {
@@ -73,6 +79,11 @@ class TopupWali extends Model
     public function kwitansi(): HasOne
     {
         return $this->hasOne(Kwitansi::class);
+    }
+
+    public function transaksiTabungan(): BelongsTo
+    {
+        return $this->belongsTo(TransaksiTabungan::class);
     }
 
     /**

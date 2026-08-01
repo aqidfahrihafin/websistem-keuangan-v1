@@ -4,10 +4,12 @@ namespace App\Services;
 
 use App\Models\Lembaga;
 use App\Models\PenarikanRequest;
+use App\Models\RekeningTabungan;
 use App\Models\SaldoSantri;
 use App\Models\Tagihan;
 use App\Models\TopupWali;
 use App\Models\Transaksi;
+use App\Models\TransaksiTabungan;
 use Illuminate\Support\Carbon;
 
 class LaporanKeuanganService
@@ -20,6 +22,10 @@ class LaporanKeuanganService
         Transaksi::JENIS_PENYESUAIAN => 'Penyesuaian',
         Transaksi::JENIS_PEMBAYARAN_KANTIN => 'Pembayaran Kantin',
         Transaksi::JENIS_TRANSFER_ANTAR_SANTRI => 'Transfer Antar Santri',
+        Transaksi::JENIS_TRANSFER_KE_TABUNGAN => 'Saldo ke Tabungan',
+        TransaksiTabungan::JENIS_SETORAN_TUNAI => 'Setoran Tunai Tabungan',
+        TransaksiTabungan::JENIS_SETORAN_DARI_SALDO => 'Setoran Tabungan dari Saldo',
+        TransaksiTabungan::JENIS_SETORAN_MIDTRANS => 'Setoran Tabungan via Midtrans',
     ];
 
     /**
@@ -45,6 +51,7 @@ class LaporanKeuanganService
             'tanggal_sampai' => $sampai,
             'lembaga' => $lembagaId ? Lembaga::find($lembagaId) : null,
             'saldo_santri_saat_ini' => $this->saldoSantriSaatIni($lembagaId),
+            'saldo_tabungan_saat_ini' => $this->saldoTabunganSaatIni($lembagaId),
             'transaksi' => $this->ringkasanTransaksi($dari, $sampai, $lembagaId),
             'tagihan' => $this->ringkasanTagihan($dari, $sampai, $lembagaId),
             'topup_wali' => $this->ringkasanTopupWali($dari, $sampai, $lembagaId),
@@ -55,6 +62,13 @@ class LaporanKeuanganService
     private function saldoSantriSaatIni(?int $lembagaId): int
     {
         return (int) SaldoSantri::query()
+            ->when($lembagaId, fn ($q) => $q->whereHas('santri', fn ($q) => $q->where('lembaga_id', $lembagaId)))
+            ->sum('saldo');
+    }
+
+    private function saldoTabunganSaatIni(?int $lembagaId): int
+    {
+        return (int) RekeningTabungan::query()
             ->when($lembagaId, fn ($q) => $q->whereHas('santri', fn ($q) => $q->where('lembaga_id', $lembagaId)))
             ->sum('saldo');
     }
@@ -103,6 +117,32 @@ class LaporanKeuanganService
                 $totalKredit += (int) $row->total;
             } elseif (in_array($row->jenis, self::JENIS_KAS_KELUAR, true) && $row->arah === Transaksi::ARAH_DEBIT) {
                 $totalDebit += (int) $row->total;
+            }
+        }
+
+        $barisTabungan = TransaksiTabungan::query()
+            ->selectRaw('jenis, kanal, count(*) as jumlah, sum(nominal) as total')
+            ->where('status', Transaksi::STATUS_BERHASIL)
+            ->whereBetween('created_at', [$dari, $sampai])
+            ->when($lembagaId, fn ($q) => $q->whereHas('rekening.santri', fn ($q) => $q->where('lembaga_id', $lembagaId)))
+            ->groupBy('jenis', 'kanal')
+            ->get();
+
+        foreach ($barisTabungan as $row) {
+            $perJenis[$row->jenis] ??= [
+                'jenis' => $row->jenis,
+                'label' => self::JENIS_TRANSAKSI_LABEL[$row->jenis] ?? $row->jenis,
+                'jumlah' => 0,
+                'total' => 0,
+            ];
+            $perJenis[$row->jenis]['jumlah'] += (int) $row->jumlah;
+            $perJenis[$row->jenis]['total'] += (int) $row->total;
+
+            if (in_array($row->jenis, [
+                TransaksiTabungan::JENIS_SETORAN_TUNAI,
+                TransaksiTabungan::JENIS_SETORAN_MIDTRANS,
+            ], true)) {
+                $totalKredit += (int) $row->total;
             }
         }
 
@@ -171,11 +211,16 @@ class LaporanKeuanganService
             ->whereBetween('paid_at', [$dari, $sampai])
             ->when($lembagaId, fn ($q) => $q->whereHas('santri', fn ($q) => $q->where('lembaga_id', $lembagaId)));
 
+        $totalKeTabungan = (int) (clone $query)
+            ->where('tujuan', TopupWali::TUJUAN_TABUNGAN)
+            ->sum('nominal_diminta');
+
         return [
             'jumlah' => (int) $query->count(),
             'total_diminta' => (int) $query->sum('nominal_diminta'),
             'total_ke_tagihan' => (int) $query->sum('nominal_potongan_tagihan'),
             'total_ke_saldo' => (int) $query->sum('nominal_ke_saldo'),
+            'total_ke_tabungan' => $totalKeTabungan,
         ];
     }
 

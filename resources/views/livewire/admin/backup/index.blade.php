@@ -1,9 +1,39 @@
-<div>
+<div class="content-stack">
     @if ($pesanSukses)
         <x-alert-banner type="success" :message="$pesanSukses" class="mb-4" />
     @endif
     @if ($pesanError)
         <x-alert-banner type="error" :message="$pesanError" class="mb-4" />
+    @endif
+
+    @if ($snapshotAktif)
+        <x-warning-banner variant="warning" title="Database sedang memakai hasil restore" class="mb-4">
+            <p>
+                Snapshot aktif: <strong class="font-mono">{{ $snapshotAktif['backup_name'] }}</strong>
+                @if (!empty($snapshotAktif['backup_created_at']))
+                    &middot; data backup dibuat {{ \Illuminate\Support\Carbon::parse($snapshotAktif['backup_created_at'])->translatedFormat('d M Y H:i') }}
+                @endif
+            </p>
+            <p class="mt-1 text-xs opacity-90">
+                Dipulihkan {{ \Illuminate\Support\Carbon::parse($snapshotAktif['restored_at'])->diffForHumans() }}
+                @if (!empty($snapshotAktif['restored_by'])) oleh {{ $snapshotAktif['restored_by'] }} @endif.
+                Transaksi baru masuk ke snapshot ini dan tidak otomatis digabungkan jika database dipulihkan ke backup lain.
+            </p>
+            <div class="mt-3">
+                <x-confirm-button
+                    action="jadikanDataUtama"
+                    title="Jadikan Data Operasional Utama"
+                    message="Pastikan Anda sudah memeriksa bahwa ini adalah database paling lengkap dan terbaru. Tindakan ini hanya menghapus penanda hasil restore; isi database tidak diubah."
+                    confirmText="Ya, Jadikan Data Utama"
+                    variant="warning"
+                    class="btn-secondary"
+                >Jadikan Data Operasional Utama</x-confirm-button>
+            </div>
+        </x-warning-banner>
+    @else
+        <x-warning-banner variant="success" title="Database operasional utama" class="mb-4">
+            Belum ada penanda bahwa database aktif berasal dari proses restore melalui aplikasi ini.
+        </x-warning-banner>
     @endif
 
     <x-warning-banner :variant="$kesiapan['siap'] ? 'success' : 'danger'" :title="$kesiapan['siap'] ? 'Backup & restore siap' : 'Backup & restore belum siap'" class="mb-4">
@@ -20,7 +50,8 @@
         Backup mencakup seluruh database dan berkas privat (surat keterangan, foto santri). Pemulihan (restore) hanya
         mengembalikan bagian <strong>database</strong> secara otomatis - berkas privat tetap ada di server dan tidak
         ikut ditimpa. Sebelum pemulihan dijalankan, sistem selalu membuat backup pengaman dari kondisi saat ini
-        terlebih dahulu, sehingga tindakan ini tetap bisa dibatalkan.
+        terlebih dahulu. Backup baru menyimpan manifest versi dan daftar migration; setelah restore, migration yang
+        tertinggal dijalankan otomatis lalu struktur tabel inti diperiksa.
     </x-warning-banner>
 
     <div class="toolbar mb-4 sm:justify-between">
@@ -49,6 +80,7 @@
                     <th class="px-4 py-3">Nama Berkas</th>
                     <th class="px-4 py-3">Ukuran</th>
                     <th class="px-4 py-3">Dibuat Pada</th>
+                    <th class="px-4 py-3">Kompatibilitas</th>
                     <th class="px-4 py-3"></th>
                 </tr>
             </thead>
@@ -58,6 +90,20 @@
                         <td class="px-4 py-3 font-mono text-xs">{{ $backup['nama'] }}</td>
                         <td class="px-4 py-3">{{ $backup['ukuran_label'] }}</td>
                         <td class="px-4 py-3">{{ $backup['dibuat_at']->translatedFormat('d M Y H:i') }}</td>
+                        <td class="px-4 py-3">
+                            @php
+                                $compat = $backup['kompatibilitas'];
+                                $compatClass = match ($compat['status']) {
+                                    'cocok' => 'bg-emerald-100 text-emerald-800',
+                                    'perlu_migrasi' => 'bg-blue-100 text-blue-800',
+                                    'legacy' => 'bg-amber-100 text-amber-800',
+                                    default => 'bg-red-100 text-red-800',
+                                };
+                            @endphp
+                            <span class="badge {{ $compatClass }}" title="{{ $compat['pesan'] }}">
+                                {{ $compat['label'] }}
+                            </span>
+                        </td>
                         <td class="px-4 py-3 text-right space-x-3">
                             <a href="{{ route('admin.backup.unduh', $backup['nama']) }}" class="btn-link">Unduh</a>
                             <button type="button" wire:click="openPulihkan('{{ $backup['nama'] }}')" class="btn-link text-amber-600">Pulihkan</button>
@@ -73,7 +119,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="p-4">
+                        <td colspan="5" class="p-4">
                             <x-empty-state
                                 :title="filled($search) ? 'Berkas backup tidak ditemukan' : 'Belum ada backup'"
                                 :description="filled($search) ? 'Coba gunakan nama berkas yang berbeda.' : 'Buat backup pertama untuk menyiapkan salinan pengaman data.'"
@@ -151,6 +197,23 @@
                     backup pengaman dari kondisi sekarang akan dibuat otomatis sebelum data diganti.</p>
             </x-warning-banner>
 
+            @if ($pulihkanKompatibilitas)
+                <x-warning-banner
+                    :variant="in_array($pulihkanKompatibilitas['status'], ['cocok', 'perlu_migrasi']) ? 'success' : ($pulihkanKompatibilitas['status'] === 'legacy' ? 'warning' : 'danger')"
+                    :title="$pulihkanKompatibilitas['label']"
+                >
+                    <p>{{ $pulihkanKompatibilitas['pesan'] }}</p>
+                    @if (($pulihkanKompatibilitas['manifest']['application'] ?? null) !== null)
+                        <p class="mt-1 text-xs opacity-80">
+                            Versi aplikasi backup:
+                            {{ $pulihkanKompatibilitas['manifest']['application']['version'] ?? 'tidak diketahui' }}
+                            &middot; Commit:
+                            <span class="font-mono">{{ $pulihkanKompatibilitas['manifest']['application']['commit'] ?? 'tidak diketahui' }}</span>
+                        </p>
+                    @endif
+                </x-warning-banner>
+            @endif
+
             <x-form-field
                 label="Ketik PULIHKAN untuk mengonfirmasi"
                 required
@@ -171,6 +234,7 @@
                     type="button"
                     wire:click="pulihkan"
                     wire:loading.attr="disabled"
+                    @disabled(in_array($pulihkanKompatibilitas['status'] ?? null, ['rusak', 'tidak_kompatibel']))
                     wire:target="pulihkan"
                     class="btn-danger"
                 >

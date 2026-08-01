@@ -1,7 +1,8 @@
-<div>
+<div class="content-stack">
     <x-warning-banner variant="info" title="Perangkat kiosk pondok" class="mb-4">
         Kelola mesin RFID/fingerprint kiosk, tautkan kiosk kantin ke unit usaha, dan pantau perangkat yang aktif digunakan.
     </x-warning-banner>
+    @error('perangkat') <x-alert-banner type="error" :message="$message" /> @enderror
 
     <div class="toolbar mb-4 sm:justify-between">
         <div class="w-full sm:max-w-md">
@@ -19,7 +20,7 @@
                     <th class="px-4 py-3">Tipe</th>
                     <th class="px-4 py-3">Status</th>
                     <th class="px-4 py-3">Aktivitas Terakhir</th>
-                    <th class="px-4 py-3">Petugas Jaga</th>
+                    <th class="px-4 py-3">Petugas & Sesi Aktif</th>
                     <th class="px-4 py-3"></th>
                 </tr>
             </thead>
@@ -51,14 +52,16 @@
                         </td>
                         <td class="px-4 py-3 text-xs text-slate-500">{{ $statusTerakhir[$device->id] }}</td>
                         <td class="px-4 py-3">
-                            @if ($device->petugasJaga)
-                                <p class="text-slate-700">{{ $device->petugasJaga->name }}</p>
-                                <p class="text-[11px] text-slate-400">sejak {{ $device->petugas_jaga_sejak->diffForHumans() }}</p>
-                                <button type="button" wire:click="lepasJaga({{ $device->id }})" class="mt-0.5 text-[11px] text-slate-400 hover:text-red-600 hover:underline">Lepas jaga</button>
+                            @if ($device->sesiKasAktif)
+                                <p class="font-medium text-emerald-700">{{ $device->sesiKasAktif->petugas->name }}</p>
+                                <p class="text-[11px] text-slate-500">Sesi {{ $device->sesiKasAktif->nomor }}</p>
+                                <p class="text-[11px] text-slate-400">aktif sejak {{ $device->sesiKasAktif->dibuka_at->diffForHumans() }}</p>
                             @else
-                                <p class="text-slate-400">Belum ada petugas</p>
-                                <button type="button" wire:click="jagaDisini({{ $device->id }})" class="text-[11px] text-teal-700 hover:underline">Saya jaga di sini</button>
+                                <p class="text-slate-400">Tidak ada sesi aktif</p>
                             @endif
+                            <p class="mt-1 text-[11px] text-slate-500">
+                                {{ $device->petugasTerdaftar->pluck('name')->join(', ') ?: 'Belum ada petugas terdaftar' }}
+                            </p>
                         </td>
                         <td class="px-4 py-3 text-right whitespace-nowrap">
                             <button type="button" wire:click="bukaPanduan({{ $device->id }})" class="btn-link">Panduan Setup</button>
@@ -110,6 +113,19 @@
                     </select>
                 </x-form-field>
             @endif
+            <x-form-field label="Petugas Kios" hint="Beberapa petugas boleh ditugaskan, tetapi hanya satu yang dapat membuka sesi aktif pada perangkat ini.">
+                <div class="max-h-44 space-y-2 overflow-y-auto rounded-lg border border-slate-200 p-3">
+                    @forelse ($petugasKios as $petugas)
+                        <label class="flex items-center gap-2 text-sm">
+                            <input type="checkbox" wire:model="petugas_ids" value="{{ $petugas->id }}" class="field-checkbox">
+                            <span>{{ $petugas->name }} <span class="text-xs text-slate-400">{{ $petugas->email }}</span></span>
+                        </label>
+                    @empty
+                        <p class="text-sm text-slate-500">Belum ada akun dengan role petugas kios.</p>
+                    @endforelse
+                </div>
+                @error('petugas_ids') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+            </x-form-field>
             <label class="flex items-center gap-2 text-sm text-slate-700">
                 <input type="checkbox" wire:model="aktif" class="field-checkbox">
                 Aktif

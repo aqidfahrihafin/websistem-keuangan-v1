@@ -1,19 +1,19 @@
-<div>
+<div class="content-stack">
     @error('kamar')
         <x-alert-banner type="error" :message="$message" class="mb-4" />
     @enderror
 
-    <x-warning-banner variant="info" title="Kamar mengikuti lembaga santri" class="mb-4">
-        Santri hanya dapat ditempatkan pada kamar di lembaga yang sama. Pemindahan kamar dilakukan melalui form data santri dan otomatis masuk riwayat.
+    <x-warning-banner variant="info" title="Kamar mengikuti rayon" class="mb-4">
+        Satu rayon dapat ditempati santri dari lembaga pendidikan mana pun. Pemindahan kamar tetap tercatat dalam riwayat.
     </x-warning-banner>
 
     <div class="toolbar mb-4 sm:flex-nowrap">
         <div class="flex w-full flex-col gap-2 sm:flex-1 sm:flex-row">
-            <x-search-input wire:model.live.debounce.300ms="search" placeholder="Cari kamar, kode, gedung, atau lembaga..." />
-            <select wire:model.live="filterLembaga" class="field-input sm:w-56">
-                <option value="">Semua lembaga</option>
-                @foreach ($lembagas as $lembaga)
-                    <option value="{{ $lembaga->id }}">{{ $lembaga->nama }}</option>
+            <x-search-input wire:model.live.debounce.300ms="search" placeholder="Cari kamar, kode, gedung, atau rayon..." />
+            <select wire:model.live="filterRayon" class="field-input sm:w-56">
+                <option value="">Semua rayon</option>
+                @foreach ($rayons as $rayon)
+                    <option value="{{ $rayon->id }}">{{ $rayon->nama }}</option>
                 @endforeach
             </select>
         </div>
@@ -25,7 +25,7 @@
             <thead class="bg-slate-50 text-left text-xs uppercase text-slate-600">
                 <tr>
                     <th class="px-4 py-3">Kamar</th>
-                    <th class="px-4 py-3">Lembaga</th>
+                    <th class="px-4 py-3">Rayon</th>
                     <th class="px-4 py-3">Lokasi</th>
                     <th class="px-4 py-3">Penghuni</th>
                     <th class="px-4 py-3">Peruntukan</th>
@@ -40,7 +40,7 @@
                             <p class="font-semibold text-slate-900">{{ $kamar->nama }}</p>
                             <p class="text-xs font-mono text-slate-500">{{ $kamar->kode }}</p>
                         </td>
-                        <td class="px-4 py-3 text-slate-700">{{ $kamar->lembaga->nama }}</td>
+                        <td class="px-4 py-3 text-slate-700">{{ $kamar->rayon?->nama ?: 'Belum ditentukan' }}</td>
                         <td class="px-4 py-3 text-slate-600">
                             {{ $kamar->gedung ?: '-' }}
                             @if ($kamar->lantai !== null)
@@ -77,8 +77,8 @@
                     <tr>
                         <td colspan="7" class="p-4">
                             <x-empty-state
-                                :title="filled($search) || filled($filterLembaga) ? 'Kamar tidak ditemukan' : 'Belum ada data kamar'"
-                                :description="filled($search) || filled($filterLembaga) ? 'Coba ubah pencarian atau filter lembaga.' : 'Tambahkan kamar untuk mulai menempatkan santri.'"
+                                :title="filled($search) || filled($filterRayon) ? 'Kamar tidak ditemukan' : 'Belum ada data kamar'"
+                                :description="filled($search) || filled($filterRayon) ? 'Coba ubah pencarian atau filter rayon.' : 'Tambahkan kamar untuk mulai menempatkan santri.'"
                             />
                         </td>
                     </tr>
@@ -91,15 +91,15 @@
     <x-modal show="showModal" :title="$editing ? 'Ubah Kamar' : 'Tambah Kamar'" maxWidth="lg">
         <form wire:submit="save" class="space-y-4">
             <div class="grid gap-4 sm:grid-cols-2">
-                <x-form-field label="Lembaga" required :error="$errors->first('lembaga_id')">
-                    <select wire:model="lembaga_id" class="field-input">
-                        <option value="">Pilih lembaga</option>
-                        @foreach ($lembagas as $lembaga)
-                            <option value="{{ $lembaga->id }}">{{ $lembaga->nama }}</option>
+                <x-form-field label="Rayon" required :error="$errors->first('rayon_id')">
+                    <select wire:model="rayon_id" class="field-input">
+                        <option value="">Pilih rayon</option>
+                        @foreach ($rayons as $rayon)
+                            <option value="{{ $rayon->id }}">{{ $rayon->nama }}</option>
                         @endforeach
                     </select>
                 </x-form-field>
-                <x-form-field label="Kode Kamar" required :error="$errors->first('kode')" hint="Unik dalam satu lembaga.">
+                <x-form-field label="Kode Kamar" required :error="$errors->first('kode')" hint="Unik dalam satu rayon.">
                     <input type="text" wire:model="kode" class="field-input" placeholder="A-01">
                 </x-form-field>
                 <x-form-field label="Nama Kamar" required :error="$errors->first('nama')">

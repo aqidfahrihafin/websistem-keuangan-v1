@@ -405,3 +405,13 @@ Respons `401` berarti sesi API telah habis atau token tidak valid. Mobile mengha
 - Push Firebase dan pusat notifikasi persisten sudah aktif. Pesan baru disimpan di `wali_notifications`, sehingga tetap tersedia walaupun perangkat offline atau tidak memiliki token FCM. Data lama sebelum migrasi tabel ini tidak di-backfill.
 - Belum ada endpoint self-registration/lupa password untuk wali — reset password saat ini hanya lewat admin pondok.
 - Kredensial Midtrans (server key / client key) diatur oleh admin lewat panel web (`/admin/pengaturan/midtrans`), bisa sandbox atau produksi. Jika `POST /topup` mengembalikan 422 "Midtrans belum dikonfigurasi", hubungi admin pondok.
+# Perubahan kompatibilitas sesi dan riwayat
+
+- Respons `POST /api/wali/login` menyertakan `quick_token` untuk memulihkan
+  access token pada perangkat yang telah mengaktifkan PIN/sidik jari.
+- `POST /api/wali/quick-login` merotasi `quick_token` dan menerbitkan access
+  token baru. Token disimpan hanya di secure storage aplikasi.
+- `GET /api/wali/anak/{santri}/transaksi` adalah timeline gabungan saldo dan
+  tabungan. Field `ledger` bernilai `saldo` atau `tabungan`.
+- Pasangan kredit tabungan dari `transfer_ke_tabungan` tidak ditampilkan
+  dua kali; timeline memakai debit saldo sebagai satu representasi aksi.

@@ -4,10 +4,13 @@ namespace App\Livewire\Admin\Users;
 
 use App\Livewire\Concerns\WithPerPage;
 use App\Models\Keluarga;
+use App\Models\Lembaga;
+use App\Models\Rayon;
 use App\Models\User;
 use App\Services\KeluargaLinkingService;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Spatie\Permission\Models\Role;
@@ -17,7 +20,22 @@ class Index extends Component
 {
     use WithPagination, WithPerPage;
 
+    /** Role yang boleh dikelola langsung dari formulir pengguna. */
+    private const ROLE_FORM = [
+        'admin',
+        'bendahara',
+        'admin_lembaga',
+        'admin_rayon',
+        'petugas_kios',
+        'pengasuh',
+        'wali',
+        'santri',
+    ];
+
     public string $search = '';
+
+    #[Url]
+    public string $filterRole = '';
 
     public bool $showModal = false;
 
@@ -36,6 +54,8 @@ class Index extends Component
     public ?string $password = null;
 
     public ?string $role = null;
+    public array $lembaga_ids = [];
+    public array $rayon_ids = [];
 
     public ?Keluarga $keluargaDitemukan = null;
 
@@ -44,10 +64,15 @@ class Index extends Component
         $this->resetPage();
     }
 
+    public function updatingFilterRole(): void
+    {
+        $this->resetPage();
+    }
+
     public function openCreate(): void
     {
         $this->editing = null;
-        $this->reset(['name', 'email', 'nis', 'no_kk', 'phone', 'password', 'role', 'keluargaDitemukan']);
+        $this->reset(['name', 'email', 'nis', 'no_kk', 'phone', 'password', 'role', 'lembaga_ids', 'rayon_ids', 'keluargaDitemukan']);
         $this->resetValidation();
         $this->showModal = true;
     }
@@ -59,6 +84,8 @@ class Index extends Component
         $this->fill($user->only(['name', 'email', 'nis', 'no_kk', 'phone']));
         $this->password = null;
         $this->role = $user->roles->first()?->name;
+        $this->lembaga_ids = $user->lembagasDikelola()->pluck('lembagas.id')->map(fn ($id) => (string) $id)->all();
+        $this->rayon_ids = $user->rayonsDikelola()->pluck('rayons.id')->map(fn ($id) => (string) $id)->all();
         $this->keluargaDitemukan = $this->no_kk ? Keluarga::where('no_kk', $this->no_kk)->first() : null;
         $this->resetValidation();
         $this->showModal = true;
@@ -85,10 +112,14 @@ class Index extends Component
             'no_kk' => ['nullable', 'digits:16'],
             'phone' => ['nullable', 'string'],
             'password' => [$this->editing ? 'nullable' : 'required', 'string', 'min:8'],
-            'role' => ['required', 'in:admin,bendahara,pengasuh,wali,santri'],
+            'role' => ['required', Rule::in(self::ROLE_FORM)],
+            'lembaga_ids' => [$this->role === 'admin_lembaga' ? 'required' : 'nullable', 'array'],
+            'lembaga_ids.*' => ['exists:lembagas,id'],
+            'rayon_ids' => [$this->role === 'admin_rayon' ? 'required' : 'nullable', 'array'],
+            'rayon_ids.*' => ['exists:rayons,id'],
         ]);
 
-        $payload = collect($data)->except(['password', 'role'])->all();
+        $payload = collect($data)->except(['password', 'role', 'lembaga_ids', 'rayon_ids'])->all();
 
         if (! empty($data['password'])) {
             $payload['password'] = $data['password'];
@@ -102,6 +133,11 @@ class Index extends Component
         }
 
         $user->syncRoles([$data['role']]);
+        $pivot = ['akses' => 'kelola', 'aktif' => true, 'ditugaskan_oleh' => auth()->id(), 'ditugaskan_at' => now()];
+        $user->lembagasDikelola()->sync($data['role'] === 'admin_lembaga'
+            ? collect($data['lembaga_ids'])->mapWithKeys(fn ($id) => [$id => $pivot])->all() : []);
+        $user->rayonsDikelola()->sync($data['role'] === 'admin_rayon'
+            ? collect($data['rayon_ids'])->mapWithKeys(fn ($id) => [$id => $pivot])->all() : []);
 
         // The auto-link sync that fires from UserObserver::created() runs
         // before the role is assigned above (assignRole/syncRoles always
@@ -143,16 +179,33 @@ class Index extends Component
 
     public function render()
     {
-        $users = User::query()
-            ->with('roles')
-            ->when($this->search, fn ($q) => $q->where('name', 'like', "%{$this->search}%")->orWhere('email', 'like', "%{$this->search}%")->orWhere('nis', 'like', "%{$this->search}%"))
+        $query = User::query();
+        $users = (clone $query)
+            ->with(['roles', 'lembagasDikelola:id,nama', 'rayonsDikelola:id,nama'])
+            ->when(trim($this->search) !== '', fn ($q) => $q->where(fn ($q) => $q
+                ->where('name', 'like', "%{$this->search}%")
+                ->orWhere('email', 'like', "%{$this->search}%")
+                ->orWhere('nis', 'like', "%{$this->search}%")
+                ->orWhere('phone', 'like', "%{$this->search}%")))
+            ->when($this->filterRole !== '', fn ($q) => $q->role($this->filterRole))
             ->orderBy('name')
             ->paginate($this->perPage);
 
         return view('livewire.admin.users.index', [
             'title' => 'Pengguna',
             'users' => $users,
-            'roles' => Role::orderBy('name')->pluck('name'),
+            'totalPengguna' => (clone $query)->count(),
+            'totalStaf' => (clone $query)->whereHas('roles', fn ($q) => $q->whereNotIn('name', ['wali', 'santri']))->count(),
+            // whereHas tetap aman pada test/instalasi awal ketika role wali
+            // belum diseed; scope role() akan melempar RoleDoesNotExist.
+            'totalWali' => (clone $query)->whereHas('roles', fn ($q) => $q->where('name', 'wali'))->count(),
+            'totalAkunUnit' => (clone $query)->whereHas('roles', fn ($q) => $q->whereIn('name', ['admin_lembaga', 'admin_rayon']))->count(),
+            'roles' => Role::query()
+                ->whereIn('name', self::ROLE_FORM)
+                ->orderBy('name')
+                ->pluck('name'),
+            'lembagas' => Lembaga::where('is_active', true)->orderBy('nama')->get(),
+            'rayons' => Rayon::where('is_active', true)->orderBy('nama')->get(),
         ]);
     }
 }

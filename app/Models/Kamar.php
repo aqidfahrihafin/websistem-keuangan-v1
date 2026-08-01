@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
-    'lembaga_id', 'kode', 'nama', 'gedung', 'lantai', 'kapasitas',
+    'lembaga_id', 'rayon_id', 'kode', 'nama', 'gedung', 'lantai', 'kapasitas',
     'jenis_kelamin', 'is_active',
 ])]
 class Kamar extends Model
@@ -28,6 +28,11 @@ class Kamar extends Model
     public function lembaga(): BelongsTo
     {
         return $this->belongsTo(Lembaga::class);
+    }
+
+    public function rayon(): BelongsTo
+    {
+        return $this->belongsTo(Rayon::class);
     }
 
     public function santris(): HasMany

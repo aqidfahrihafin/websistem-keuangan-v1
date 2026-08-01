@@ -1,10 +1,10 @@
-<div class="space-y-6">
-    {{-- Filter --}}
-    <div class="card">
+<div class="content-stack">
+    {{-- Filter dan aksi laporan --}}
+    <section class="card" aria-labelledby="filter-laporan">
         <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
-            <div>
-                <h1 class="text-base font-semibold text-slate-900">Laporan Keuangan</h1>
-                <p class="mt-0.5 text-sm text-slate-500">Pergerakan saldo santri &mdash; bukan kas fisik pondok.</p>
+            <div class="min-w-0">
+                <h2 id="filter-laporan" class="section-heading">Filter laporan</h2>
+                <p class="section-description">Pilih periode dan lembaga untuk memperbarui seluruh ringkasan di bawah.</p>
             </div>
             <x-info-note label="Beda dengan Leger Kas Pondok?">
                 <p class="mb-1.5">Halaman ini mencatat <strong class="text-slate-700">pergerakan saldo santri</strong> (top up, bayar tagihan, transfer, bayar kantin) &mdash; termasuk yang cuma pindah saldo di dalam sistem, bukan uang fisik/rekening pondok yang berubah.</p>
@@ -14,7 +14,7 @@
             </x-info-note>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <x-form-field label="Periode Laporan">
                 <select wire:model.live="periode_pilihan" class="field-input">
                     @forelse ($periodes as $periode)
@@ -34,7 +34,7 @@
                     <input type="date" wire:model.live="tanggal_sampai" class="field-input">
                 </x-form-field>
             @else
-                <div class="sm:col-span-2">
+                <div class="md:col-span-2">
                     <p class="text-sm font-medium text-slate-700">Rentang Tanggal</p>
                     <p class="field-input flex items-center bg-slate-50 text-slate-500">
                         {{ \Illuminate\Support\Carbon::parse($tanggal_dari)->translatedFormat('d M Y') }} &ndash; {{ \Illuminate\Support\Carbon::parse($tanggal_sampai)->translatedFormat('d M Y') }}
@@ -53,11 +53,17 @@
         </div>
 
         <div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p class="text-sm text-slate-500">
-                Menampilkan <strong class="text-slate-700">{{ $laporan['tanggal_dari']->translatedFormat('d F Y') }}</strong> s/d <strong class="text-slate-700">{{ $laporan['tanggal_sampai']->translatedFormat('d F Y') }}</strong>
-                @if ($laporan['lembaga']) &mdash; <strong class="text-slate-700">{{ $laporan['lembaga']->nama }}</strong> @endif
-            </p>
-            <div class="flex flex-wrap gap-2">
+            <div class="min-w-0">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Data yang ditampilkan</p>
+                <p class="mt-1 text-sm text-slate-700">
+                    <strong>{{ $laporan['tanggal_dari']->translatedFormat('d F Y') }}</strong>
+                    <span class="text-slate-400">&ndash;</span>
+                    <strong>{{ $laporan['tanggal_sampai']->translatedFormat('d F Y') }}</strong>
+                    <span class="text-slate-400">&middot;</span>
+                    {{ $laporan['lembaga']?->nama ?? 'Semua lembaga' }}
+                </p>
+            </div>
+            <div class="grid grid-cols-2 gap-2 sm:flex">
                 <a href="{{ route('admin.laporan-keuangan.export.excel', ['tanggal_dari' => $tanggal_dari, 'tanggal_sampai' => $tanggal_sampai, 'lembaga_id' => $lembaga_id]) }}" class="btn-secondary">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v13m0 0-4-4m4 4 4-4M5 21h14" /></svg>
                     Excel
@@ -68,19 +74,19 @@
                 </a>
             </div>
         </div>
-    </div>
+    </section>
 
-    {{-- Hero: Arus Kas --}}
-    <div class="card overflow-hidden p-0! transition-shadow hover:shadow-md">
+    {{-- Ringkasan arus dana --}}
+    <section class="card overflow-hidden p-0!" aria-labelledby="ringkasan-arus">
         <div class="grid grid-cols-1 sm:grid-cols-3">
             <div class="relative overflow-hidden bg-slate-900 p-6 text-white sm:col-span-1">
                 <div class="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-emerald-500/10"></div>
                 <div class="pointer-events-none absolute -bottom-8 -left-4 h-20 w-20 rounded-full bg-white/5"></div>
-                <p class="relative text-xs uppercase tracking-wider text-slate-400">Arus Kas Bersih</p>
+                <p id="ringkasan-arus" class="relative text-xs font-semibold uppercase tracking-wider text-slate-400">Arus Dana Bersih</p>
                 <p class="relative mt-2 text-3xl font-bold {{ $laporan['transaksi']['net'] >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
                     Rp {{ number_format($laporan['transaksi']['net'], 0, ',', '.') }}
                 </p>
-                <p class="relative mt-2 text-xs text-slate-400">Uang yang benar-benar masuk/keluar pondok &mdash; tidak termasuk transfer antar santri atau bayar kantin/tagihan dari saldo.</p>
+                <p class="relative mt-2 text-xs leading-relaxed text-slate-400">Pemasukan dikurangi penarikan tunai pada periode yang dipilih.</p>
                 <a href="{{ route('admin.leger-kas-pondok.index') }}" class="relative mt-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300">
                     Rekonsiliasi kas fisik di Leger Kas Pondok
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="h-3 w-3"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
@@ -107,11 +113,16 @@
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    {{-- Saldo & Tagihan ringkas --}}
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="card flex items-start gap-3 p-4 transition-shadow hover:shadow-md">
+    {{-- Saldo dan tagihan ringkas --}}
+    <section aria-labelledby="ringkasan-posisi" class="card overflow-hidden p-0">
+        <div class="px-5 py-4 sm:px-6">
+            <h2 id="ringkasan-posisi" class="section-heading">Posisi saldo dan tagihan</h2>
+            <p class="section-description">Saldo saat ini dan perkembangan tagihan pada periode terpilih.</p>
+        </div>
+        <div class="grid grid-cols-1 border-t border-slate-100 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="flex items-start gap-3 border-b border-slate-100 p-5 transition-colors hover:bg-slate-50/70 sm:border-r xl:border-r">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm9 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" /></svg>
             </div>
@@ -121,7 +132,17 @@
                 <p class="mt-1 text-xs text-slate-400">Tidak terikat rentang tanggal.</p>
             </div>
         </div>
-        <div class="card flex items-start gap-3 p-4 transition-shadow hover:shadow-md">
+        <div class="flex items-start gap-3 border-b border-slate-100 p-5 transition-colors hover:bg-slate-50/70 xl:border-r">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 10h16M5 10V8l7-4 7 4v2M6 10v8m4-8v8m4-8v8m4-8v8M4 20h16" /></svg>
+            </div>
+            <div class="min-w-0">
+                <p class="text-sm text-slate-500">Tabungan Santri Saat Ini</p>
+                <p class="mt-1 text-xl font-semibold">Rp {{ number_format($laporan['saldo_tabungan_saat_ini'], 0, ',', '.') }}</p>
+                <p class="mt-1 text-xs text-slate-400">Titipan terpisah dari saldo belanja.</p>
+            </div>
+        </div>
+        <div class="flex items-start gap-3 border-b border-slate-100 p-5 transition-colors hover:bg-slate-50/70 sm:border-r xl:border-r-0">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
             </div>
@@ -130,7 +151,7 @@
                 <p class="mt-1 text-xl font-semibold text-emerald-600">Rp {{ number_format($laporan['tagihan']['total_terbayar'], 0, ',', '.') }}</p>
             </div>
         </div>
-        <div class="card flex items-start gap-3 p-4 transition-shadow hover:shadow-md">
+        <div class="flex items-start gap-3 border-b border-slate-100 p-5 transition-colors hover:bg-slate-50/70 xl:border-b-0 xl:border-r">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l2.5 2.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
             </div>
@@ -139,7 +160,7 @@
                 <p class="mt-1 text-xl font-semibold text-amber-600">Rp {{ number_format($laporan['tagihan']['total_sisa'], 0, ',', '.') }}</p>
             </div>
         </div>
-        <div class="card flex items-start gap-3 p-4 transition-shadow hover:shadow-md">
+        <div class="flex items-start gap-3 border-b border-slate-100 p-5 transition-colors hover:bg-slate-50/70 sm:border-b-0 sm:border-r xl:border-r">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="m9 3-6 6v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-9l-6-6ZM8.5 8.5h.01" /></svg>
             </div>
@@ -148,7 +169,18 @@
                 <p class="mt-1 text-xl font-semibold text-blue-600">Rp {{ number_format($laporan['tagihan']['total_diskon'], 0, ',', '.') }}</p>
             </div>
         </div>
-    </div>
+        <div class="flex items-start gap-3 p-5 transition-colors hover:bg-slate-50/70">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6m-6 4h6" /></svg>
+            </div>
+            <div class="min-w-0">
+                <p class="text-sm text-slate-500">Tagihan Diterbitkan</p>
+                <p class="mt-1 text-xl font-semibold text-teal-700">Rp {{ number_format($laporan['tagihan']['total_nominal'], 0, ',', '.') }}</p>
+                <p class="mt-1 text-xs text-slate-400">Nilai setelah diskon.</p>
+            </div>
+        </div>
+        </div>
+    </section>
 
     {{-- Diskon flow --}}
     <div class="card">
@@ -164,16 +196,16 @@
             $persenDiskon = round($laporan['tagihan']['total_diskon'] / $sebelum * 100, 1);
             $persenSetelah = 100 - $persenDiskon;
         @endphp
-        <div class="mt-4 flex items-center justify-between text-sm">
-            <div>
+        <div class="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+            <div class="rounded-xl bg-slate-50 p-3">
                 <p class="text-slate-500">Sebelum Diskon</p>
                 <p class="text-lg font-semibold">Rp {{ number_format($laporan['tagihan']['total_sebelum_diskon'], 0, ',', '.') }}</p>
             </div>
-            <div class="text-center">
+            <div class="rounded-xl bg-blue-50 p-3 sm:text-center">
                 <p class="text-slate-500">Diskon</p>
                 <p class="text-lg font-semibold text-blue-600">-Rp {{ number_format($laporan['tagihan']['total_diskon'], 0, ',', '.') }} ({{ $persenDiskon }}%)</p>
             </div>
-            <div class="text-right">
+            <div class="rounded-xl bg-teal-50 p-3 sm:text-right">
                 <p class="text-slate-500">Setelah Diskon</p>
                 <p class="text-lg font-semibold">Rp {{ number_format($laporan['tagihan']['total_nominal'], 0, ',', '.') }}</p>
             </div>
@@ -314,11 +346,12 @@
                 <h2 class="text-sm font-semibold text-slate-900">Top Up Wali (Midtrans)</h2>
                 <span class="badge bg-slate-100 text-slate-500">Berstatus lunas</span>
             </div>
-            <dl class="mt-4 grid grid-cols-2 gap-4 text-sm">
+            <dl class="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
                 <div><dt class="text-slate-500">Jumlah Top Up</dt><dd class="mt-1 text-lg font-semibold">{{ number_format($laporan['topup_wali']['jumlah']) }}</dd></div>
                 <div><dt class="text-slate-500">Total Diminta</dt><dd class="mt-1 text-lg font-semibold">Rp {{ number_format($laporan['topup_wali']['total_diminta'], 0, ',', '.') }}</dd></div>
                 <div><dt class="text-slate-500">Dipakai Bayar Tagihan</dt><dd class="mt-1">Rp {{ number_format($laporan['topup_wali']['total_ke_tagihan'], 0, ',', '.') }}</dd></div>
                 <div><dt class="text-slate-500">Masuk ke Saldo</dt><dd class="mt-1">Rp {{ number_format($laporan['topup_wali']['total_ke_saldo'], 0, ',', '.') }}</dd></div>
+                <div><dt class="text-slate-500">Masuk ke Tabungan</dt><dd class="mt-1">Rp {{ number_format($laporan['topup_wali']['total_ke_tabungan'], 0, ',', '.') }}</dd></div>
             </dl>
         </div>
 
@@ -327,7 +360,7 @@
                 <h2 class="text-sm font-semibold text-slate-900">Penarikan Tunai</h2>
                 <span class="badge bg-slate-100 text-slate-500">Berstatus selesai</span>
             </div>
-            <dl class="mt-4 grid grid-cols-2 gap-4 text-sm">
+            <dl class="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
                 <div><dt class="text-slate-500">Jumlah Penarikan</dt><dd class="mt-1 text-lg font-semibold">{{ number_format($laporan['penarikan']['jumlah']) }}</dd></div>
                 <div><dt class="text-slate-500">Total Nominal</dt><dd class="mt-1 text-lg font-semibold">Rp {{ number_format($laporan['penarikan']['total'], 0, ',', '.') }}</dd></div>
             </dl>

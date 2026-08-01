@@ -1,4 +1,4 @@
-<div>
+<div class="content-stack">
     <x-warning-banner variant="info" title="Banner Beranda Aplikasi Wali" class="mb-4">
         Banner tampil di halaman utama aplikasi wali, di bawah ringkasan tagihan/tunggakan. Cocok untuk pengumuman, atau ajakan donasi/hibah wali ke pesantren. Jika tidak ada banner aktif, bagian ini disembunyikan sepenuhnya. 1 banner aktif tampil penuh; 2 banner aktif atau lebih tampil bergantian (carousel) urut sesuai kolom Urutan.
     </x-warning-banner>

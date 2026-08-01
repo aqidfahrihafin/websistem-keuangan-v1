@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="content-stack">
     <div>
         <h2 class="section-heading">Ringkasan pondok</h2>
         <p class="section-description">Pantauan singkat kondisi santri dan aktivitas keuangan hari ini.</p>

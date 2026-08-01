@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Santri;
 
 use App\Models\Santri;
+use App\Models\TransaksiTabungan;
 use App\Services\LaporanKeuanganService;
 use App\Services\SantriDeaktivasiService;
 use Livewire\Attributes\Layout;
@@ -25,11 +26,15 @@ class Show extends Component
 
     public int $transaksiPerPage = 10;
 
+    public int $tabunganPerPage = 10;
+
     public array $perPageOptions = [10, 25, 50, 100];
 
     public string $tagihanSearch = '';
 
     public string $transaksiSearch = '';
+
+    public string $tabunganSearch = '';
 
     public function mount(Santri $santri): void
     {
@@ -46,6 +51,11 @@ class Show extends Component
         $this->resetPage('transaksiPage');
     }
 
+    public function updatedTabunganPerPage(): void
+    {
+        $this->resetPage('tabunganPage');
+    }
+
     public function updatingTagihanSearch(): void
     {
         $this->resetPage('tagihanPage');
@@ -54,6 +64,11 @@ class Show extends Component
     public function updatingTransaksiSearch(): void
     {
         $this->resetPage('transaksiPage');
+    }
+
+    public function updatingTabunganSearch(): void
+    {
+        $this->resetPage('tabunganPage');
     }
 
     public function verifikasi(): void
@@ -84,12 +99,14 @@ class Show extends Component
     public function render(LaporanKeuanganService $laporanKeuanganService)
     {
         $this->santri->load([
-            'keluarga', 'lembaga', 'kamar', 'kartuSantris', 'walis', 'kategoriDiskon',
-            'riwayatKamar' => fn ($query) => $query->with('kamar.lembaga')->latest('tanggal_mulai'),
+            'keluarga', 'lembaga', 'rayon', 'kamar', 'kartuSantris', 'walis', 'kategoriDiskon',
+            'rekeningTabungan',
+            'riwayatKamar' => fn ($query) => $query->with('kamar.rayon')->latest('tanggal_mulai'),
         ]);
         $jenisTransaksiLabel = $laporanKeuanganService->semuaJenisLabel();
         $tagihanSearch = trim($this->tagihanSearch);
         $transaksiSearch = mb_strtolower(trim($this->transaksiSearch));
+        $tabunganSearch = mb_strtolower(trim($this->tabunganSearch));
         $jenisTransaksiCocok = collect($jenisTransaksiLabel)
             ->filter(fn (string $label, string $jenis) => $transaksiSearch !== ''
                 && (str_contains(mb_strtolower($label), $transaksiSearch)
@@ -119,14 +136,28 @@ class Show extends Component
             ->latest()
             ->paginate($this->transaksiPerPage, ['*'], 'transaksiPage');
 
+        // Ledger tabungan terpisah dari ledger saldo sehingga harus dibaca
+        // secara khusus agar setoran tabungan tetap terlihat di detail santri.
+        $transaksiTabungan = TransaksiTabungan::query()
+            ->whereHas('rekening', fn ($query) => $query->where('santri_id', $this->santri->id))
+            ->when($tabunganSearch !== '', fn ($query) => $query->where(function ($query) use ($tabunganSearch) {
+                $query->where('jenis', 'like', '%'.str_replace(' ', '_', $tabunganSearch).'%')
+                    ->orWhere('kanal', 'like', '%'.str_replace(' ', '_', $tabunganSearch).'%')
+                    ->orWhere('status', 'like', '%'.str_replace(' ', '_', $tabunganSearch).'%');
+            }))
+            ->latest()
+            ->paginate($this->tabunganPerPage, ['*'], 'tabunganPage');
+
         return view('livewire.admin.santri.show', [
             'title' => 'Detail Santri - '.$this->santri->nama,
             'saldo' => $this->santri->saldo?->saldo ?? 0,
+            'rekeningTabungan' => $this->santri->rekeningTabungan,
             // Two independent paginators on one page - Livewire keeps them
             // separate in the URL via distinct $pageName args, so paging
             // through tagihan doesn't reset/collide with transaksi.
             'tagihans' => $tagihans,
             'transaksis' => $transaksis,
+            'transaksiTabungan' => $transaksiTabungan,
             'tagihanBelumLunasCount' => $this->santri->tagihans()->whereIn('status', ['belum_lunas', 'sebagian'])->count(),
             'jenisTransaksiLabel' => $jenisTransaksiLabel,
         ]);

@@ -4,13 +4,17 @@ namespace App\Livewire\Profil;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 #[Layout('layouts::app')]
 class Index extends Component
 {
+    use WithFileUploads;
+
     public string $name = '';
 
     public ?string $email = null;
@@ -22,6 +26,8 @@ class Index extends Component
     public string $password = '';
 
     public string $password_confirmation = '';
+
+    public $photo;
 
     public function mount(): void
     {
@@ -44,6 +50,25 @@ class Index extends Component
         $user->update($data);
 
         session()->flash('status', 'Profil berhasil diperbarui.');
+    }
+
+    public function simpanFoto(): void
+    {
+        $this->validate([
+            'photo' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:1024'],
+        ]);
+
+        $user = Auth::user();
+        $oldPath = $user->avatar_path;
+        $path = $this->photo->store('profile-photos', 'public');
+
+        $user->update(['avatar_path' => $path]);
+        if ($oldPath && $oldPath !== $path) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        $this->reset('photo');
+        session()->flash('status', 'Foto profil berhasil diperbarui.');
     }
 
     public function simpanPassword(): void

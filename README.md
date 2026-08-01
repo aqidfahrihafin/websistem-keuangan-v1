@@ -5,6 +5,9 @@ untuk aplikasi mobile wali.
 
 ## Dokumentasi
 
+- Indeks dokumentasi developer: [`docs/README.md`](docs/README.md)
+- Flow lengkap seluruh fitur dan role:
+  [`docs/ALUR-FITUR-SISTEM.md`](docs/ALUR-FITUR-SISTEM.md)
 - Dokumentasi internal role Dev: `/dev`
 - Instalasi dan kebutuhan sistem: `/dev/instalasi`
 - Deployment, migrasi hosting, smoke test, dan rollback: `/dev/deployment`

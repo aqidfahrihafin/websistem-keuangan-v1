@@ -27,7 +27,7 @@
     ];
 @endphp
 
-<div class="space-y-5">
+<div class="content-stack">
     {{-- Hero --}}
     <div class="admin-control-welcome relative overflow-hidden rounded-md bg-gradient-to-r from-slate-950 via-teal-900 to-teal-700 p-5 text-white shadow-lg sm:p-6">
         {{-- Decorative skyline - purely a mood/brand touch, not content, so

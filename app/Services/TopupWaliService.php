@@ -43,6 +43,7 @@ class TopupWaliService
         private MidtransFeeService $feeService,
         private PushNotificationService $push,
         private KwitansiService $kwitansi,
+        private TabunganService $tabungan,
     ) {
         Config::$serverKey = (string) $this->midtransSettings->serverKey();
         Config::$isProduction = $this->midtransSettings->isProduction();
@@ -237,6 +238,24 @@ class TopupWaliService
         ]))->fresh();
     }
 
+    public function createCoreApiTransactionForTabungan(User $wali, Santri $santri, int $nominal, string $metode): TopupWali
+    {
+        if ($nominal <= 0) {
+            throw new InvalidArgumentException('Nominal setoran tabungan harus lebih besar dari 0.');
+        }
+
+        $orderId = 'TABUNGAN-'.$santri->id.'-'.now()->format('YmdHis').'-'.Str::random(6);
+        $attributes = $this->chargeCoreApi($wali, $nominal, $metode, $orderId, untukTagihan: false);
+
+        return TopupWali::create(array_merge($attributes, [
+            'user_id' => $wali->id,
+            'santri_id' => $santri->id,
+            'tujuan' => TopupWali::TUJUAN_TABUNGAN,
+            'nominal_diminta' => $nominal,
+            'midtrans_order_id' => $orderId,
+        ]))->fresh();
+    }
+
     /**
      * Core API counterpart to createSnapTransactionForTagihan() - charges
      * exactly the tagihan's remaining amount via VA/QRIS instead of a Snap
@@ -423,6 +442,26 @@ class TopupWaliService
      */
     private function settle(TopupWali $topup): void
     {
+        if ($topup->tujuan === TopupWali::TUJUAN_TABUNGAN) {
+            $transaksi = $this->tabungan->kreditMidtrans(
+                $topup->santri,
+                $topup->nominal_diminta,
+                $topup->midtrans_order_id,
+                $topup,
+                $topup->user,
+            );
+
+            $topup->update([
+                'status' => TopupWali::STATUS_PAID,
+                'transaksi_tabungan_id' => $transaksi->id,
+                'nominal_potongan_tagihan' => 0,
+                'nominal_ke_saldo' => 0,
+                'paid_at' => now(),
+            ]);
+
+            return;
+        }
+
         if ($topup->tagihan_id) {
             $this->settleTagihanScoped($topup);
 

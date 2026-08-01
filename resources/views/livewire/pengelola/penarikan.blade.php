@@ -13,7 +13,7 @@
     ];
 @endphp
 
-<div class="space-y-5">
+<div class="content-stack">
     <section class="relative overflow-hidden rounded-md bg-linear-to-br from-slate-950 via-teal-950 to-teal-800 p-5 text-white shadow-lg sm:p-6">
         <div class="pointer-events-none absolute -right-14 -top-20 h-56 w-56 rounded-full bg-teal-300/15 blur-3xl"></div>
         <div class="pointer-events-none absolute -bottom-24 left-1/3 h-52 w-52 rounded-full bg-cyan-300/10 blur-3xl"></div>

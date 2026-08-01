@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable(['kode', 'nama', 'tipe', 'alamat', 'is_active'])]
 class Lembaga extends Model
@@ -38,5 +39,12 @@ class Lembaga extends Model
     public function jenisTagihans(): HasMany
     {
         return $this->hasMany(JenisTagihan::class);
+    }
+
+    public function pengelolas(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'unit_user')
+            ->withPivot(['akses', 'aktif', 'ditugaskan_oleh', 'ditugaskan_at'])
+            ->withTimestamps();
     }
 }

@@ -8,7 +8,9 @@ use App\Models\KartuSantri;
 use App\Models\PenarikanRequest;
 use App\Models\Santri;
 use App\Services\PenarikanService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -50,6 +52,8 @@ class CekSaldo extends Component
     public int $percobaanFingerprint = 0;
 
     public string $step = 'idle';
+
+    public string $layanan = 'saldo';
 
     /** @var array{nominal: int, saldo_setelah: int, waktu: string}|null */
     public ?array $hasil = null;
@@ -113,7 +117,30 @@ class CekSaldo extends Component
         }
 
         $this->santriId = $kartu->santri->id;
+
+        if ($this->layanan === 'tabungan' && $this->device) {
+            $this->arahkanKeTabungan($kartu->santri);
+
+            return;
+        }
+
         $this->step = 'found';
+    }
+
+    private function arahkanKeTabungan(Santri $santri): void
+    {
+        // Token acak sekali pakai meneruskan hasil scan ke layar tabungan
+        // tanpa menaruh UID kartu atau ID santri pada URL.
+        $token = Str::random(64);
+        Cache::put('kios-tabungan-handoff:'.$token, [
+            'device_id' => $this->device->id,
+            'santri_id' => $santri->id,
+        ], now()->addMinutes(2));
+
+        $this->redirect(
+            route('kios-tabungan.index', ['device' => $this->device, 'handoff' => $token]),
+            navigate: false,
+        );
     }
 
     /**

@@ -1,4 +1,4 @@
-<div class="space-y-4">
+<div class="content-stack">
     <x-warning-banner variant="info" title="Laporan bersifat baca saja">
         Gunakan pencarian untuk mempersempit data. File Excel dan PDF mengikuti kata pencarian yang sedang aktif.
     </x-warning-banner>

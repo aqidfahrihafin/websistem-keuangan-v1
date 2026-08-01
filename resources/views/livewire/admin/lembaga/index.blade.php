@@ -1,4 +1,4 @@
-<div>
+<div class="content-stack">
     <div class="toolbar mb-4 sm:justify-between">
         <div class="w-full sm:max-w-md">
             <x-search-input wire:model.live.debounce.300ms="search" placeholder="Cari kode, nama, tipe, atau alamat..." />

@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-2xl space-y-6">
+<div class="content-stack mx-auto max-w-2xl">
     <x-warning-banner variant="info" title="Identitas Aplikasi">
         Nama aplikasi, nama pondok, dan logo di sini dipakai di judul halaman, favicon, sidebar, halaman login, serta kop invoice/kartu santri/laporan yang dicetak &mdash; tidak perlu ubah file <span class="font-medium">.env</span> lagi.
     </x-warning-banner>

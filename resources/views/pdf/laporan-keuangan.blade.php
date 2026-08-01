@@ -62,6 +62,7 @@
     <table class="summary">
         <tr>
             <td><div class="box"><div class="label">Saldo Santri Saat Ini</div><div class="value">Rp {{ number_format($laporan['saldo_santri_saat_ini'], 0, ',', '.') }}</div></div></td>
+            <td><div class="box"><div class="label">Tabungan Santri Saat Ini</div><div class="value">Rp {{ number_format($laporan['saldo_tabungan_saat_ini'], 0, ',', '.') }}</div></div></td>
             <td><div class="box"><div class="label">Total Pemasukan</div><div class="value positive">Rp {{ number_format($laporan['transaksi']['total_kredit'], 0, ',', '.') }}</div></div></td>
             <td><div class="box"><div class="label">Total Pengeluaran</div><div class="value negative">Rp {{ number_format($laporan['transaksi']['total_debit'], 0, ',', '.') }}</div></div></td>
             <td><div class="box"><div class="label">Arus Kas Bersih</div><div class="value {{ $laporan['transaksi']['net'] >= 0 ? 'positive' : 'negative' }}">Rp {{ number_format($laporan['transaksi']['net'], 0, ',', '.') }}</div></div></td>
@@ -120,6 +121,7 @@
             <tr><td>Top Up Wali (Midtrans, lunas)</td><td>{{ number_format($laporan['topup_wali']['jumlah']) }}</td><td>Rp {{ number_format($laporan['topup_wali']['total_diminta'], 0, ',', '.') }}</td></tr>
             <tr><td>&nbsp;&nbsp;&mdash; Dipakai Bayar Tagihan</td><td></td><td>Rp {{ number_format($laporan['topup_wali']['total_ke_tagihan'], 0, ',', '.') }}</td></tr>
             <tr><td>&nbsp;&nbsp;&mdash; Masuk ke Saldo</td><td></td><td>Rp {{ number_format($laporan['topup_wali']['total_ke_saldo'], 0, ',', '.') }}</td></tr>
+            <tr><td>&nbsp;&nbsp;&mdash; Masuk ke Tabungan</td><td></td><td>Rp {{ number_format($laporan['topup_wali']['total_ke_tabungan'], 0, ',', '.') }}</td></tr>
             <tr><td>Penarikan Tunai (selesai)</td><td>{{ number_format($laporan['penarikan']['jumlah']) }}</td><td>Rp {{ number_format($laporan['penarikan']['total'], 0, ',', '.') }}</td></tr>
         </tbody>
     </table>

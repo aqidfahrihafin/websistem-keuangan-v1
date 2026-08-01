@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-2xl space-y-4">
+<div class="content-stack mx-auto max-w-2xl">
     <div class="toolbar">
         <a href="{{ route('admin.tagihan.index') }}" wire:navigate class="btn-secondary">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>

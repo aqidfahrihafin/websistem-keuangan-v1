@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="content-stack">
     <x-warning-banner variant="warning" title="Hanya untuk kasus khusus">
         Penautan wali ke santri <strong>sudah berjalan otomatis</strong> berdasarkan No. KK yang sama (lihat halaman <a href="{{ route('admin.keluarga.index') }}" class="underline">Keluarga</a>). Form di bawah ini <strong>bukan cara utama</strong> untuk menautkan wali &mdash; pakai ini hanya kalau wali tidak satu No. KK dengan santrinya (kerabat, wali asuh, dsb).
     </x-warning-banner>

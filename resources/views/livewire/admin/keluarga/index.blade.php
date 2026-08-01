@@ -1,4 +1,4 @@
-<div>
+<div class="content-stack">
     <x-warning-banner variant="info" title="No. KK adalah sumber tautan otomatis wali" class="mb-4">
         Wali dengan No. KK yang cocok dengan data keluarga di sini akan otomatis tertaut ke semua santri dalam keluarga tersebut. Cek No. KK dulu sebelum menambah supaya tidak membuat data ganda.
     </x-warning-banner>

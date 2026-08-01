@@ -1,4 +1,8 @@
-<div>
+<div class="content-stack">
+    <x-warning-banner variant="info" title="Pencatatan pembayaran terpusat">
+        Admin hanya mengelola dan memantau tagihan. Pembayaran tunai diproses petugas kios melalui sesi kas aktif, sedangkan pembayaran digital diproses melalui kanal wali.
+    </x-warning-banner>
+
     <div class="toolbar mb-4 sm:justify-between">
         <div class="flex flex-col gap-2 sm:flex-row">
             <x-search-input wire:model.live.debounce.300ms="search" placeholder="Cari nama/NIS..." />
@@ -138,26 +142,10 @@
                         </td>
                         <td class="px-4 py-3 text-right">
                             @if ($tagihan->status !== 'lunas' && $tagihan->status !== 'dibatalkan')
-                                @if ($bayarId === $tagihan->id)
-                                    <div class="flex items-center justify-end gap-2 rounded-lg bg-amber-50 p-1.5 ring-1 ring-amber-200">
-                                        <input type="number" wire:model="bayarNominal" placeholder="Nominal" class="w-28 rounded-lg border-slate-300 text-xs shadow-sm focus:border-teal-600 focus:ring-teal-600">
-                                        <x-confirm-button
-                                            action="catatPembayaranTunai"
-                                            title="Catat Pembayaran Tunai"
-                                            message="Pembayaran tunai untuk tagihan {{ $tagihan->jenisTagihan->nama }} - {{ $tagihan->periode_label }} milik {{ $tagihan->santri->nama }} akan dicatat. Pastikan uang tunai sudah diterima."
-                                            confirmText="Ya, Simpan"
-                                            variant="success"
-                                            class="text-xs text-emerald-600 hover:underline whitespace-nowrap"
-                                        >Simpan</x-confirm-button>
-                                        <button type="button" wire:click="$set('bayarId', null)" class="btn-link">Batal</button>
-                                    </div>
+                                @if ($tagihan->nominal_terbayar == 0)
+                                    <button wire:click="bukaBatalkan({{ $tagihan->id }})" class="btn-link-danger">Batalkan</button>
                                 @else
-                                    <div class="flex items-center justify-end gap-3">
-                                        <button wire:click="bukaBayar({{ $tagihan->id }})" class="btn-link">Catat Bayar Tunai</button>
-                                        @if ($tagihan->nominal_terbayar == 0)
-                                            <button wire:click="bukaBatalkan({{ $tagihan->id }})" class="btn-link-danger">Batalkan</button>
-                                        @endif
-                                    </div>
+                                    <span class="text-xs text-slate-400">Pembayaran melalui kios/wali</span>
                                 @endif
                             @elseif ($tagihan->status === 'lunas')
                                 <a href="{{ route('invoice.tagihan', $tagihan) }}" class="btn-link">Unduh Invoice</a>

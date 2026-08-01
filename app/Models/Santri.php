@@ -14,7 +14,7 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
 #[Fillable([
-    'keluarga_id', 'user_id', 'lembaga_id', 'kamar_id', 'nis', 'nik', 'nama', 'tempat_lahir',
+    'keluarga_id', 'user_id', 'lembaga_id', 'rayon_id', 'kamar_id', 'nis', 'nik', 'nama', 'tempat_lahir',
     'tanggal_lahir', 'jenis_kelamin', 'alamat', 'status', 'tanggal_masuk', 'foto_path',
     'kategori_diskon_id', 'kategori_diskon_auto',
 ])]
@@ -74,6 +74,16 @@ class Santri extends Model
         return $this->belongsTo(Kamar::class);
     }
 
+    public function rayon(): BelongsTo
+    {
+        return $this->belongsTo(Rayon::class);
+    }
+
+    public function riwayatRayon(): HasMany
+    {
+        return $this->hasMany(RiwayatRayonSantri::class);
+    }
+
     public function riwayatKamar(): HasMany
     {
         return $this->hasMany(RiwayatKamarSantri::class);
@@ -112,6 +122,11 @@ class Santri extends Model
     public function saldo(): HasOne
     {
         return $this->hasOne(SaldoSantri::class);
+    }
+
+    public function rekeningTabungan(): HasOne
+    {
+        return $this->hasOne(RekeningTabungan::class);
     }
 
     public function transaksis(): HasMany

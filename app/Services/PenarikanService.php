@@ -6,6 +6,8 @@ use App\Exceptions\InvalidTransaksiException;
 use App\Models\Device;
 use App\Models\KebijakanPenarikan;
 use App\Models\PenarikanRequest;
+use App\Models\MutasiKas;
+use App\Models\SesiKas;
 use App\Models\Santri;
 use App\Models\Transaksi;
 use App\Models\User;
@@ -19,6 +21,7 @@ class PenarikanService
         private WalletService $wallet,
         private FingerprintVerifier $fingerprint,
         private PushNotificationService $push,
+        private SesiKasService $sesiKasService,
     ) {}
 
     public function createRequest(Santri $santri, int $nominal): PenarikanRequest
@@ -150,6 +153,25 @@ class PenarikanService
         }
 
         return DB::transaction(function () use ($request, $pengurus, $fingerprintRef, $device) {
+            $sesiKas = null;
+            if ($device) {
+                $device = Device::query()->lockForUpdate()->findOrFail($device->id);
+
+                $sesiKas = SesiKas::query()
+                    ->whereKey($device->sesi_kas_aktif_id)
+                    ->where('device_id', $device->id)
+                    ->where('status', SesiKas::STATUS_AKTIF)
+                    ->lockForUpdate()
+                    ->with('petugas')
+                    ->first();
+
+                if (! $sesiKas) {
+                    throw new InvalidTransaksiException('Kios belum memiliki sesi kas aktif. Minta petugas membuka sesi terlebih dahulu.');
+                }
+
+                $pengurus = $sesiKas->petugas;
+            }
+
             $transaksi = $this->wallet->debit(
                 $request->santri,
                 $request->nominal_diminta,
@@ -166,10 +188,24 @@ class PenarikanService
                 'status' => PenarikanRequest::STATUS_SELESAI,
                 'verifikasi_fingerprint_ref' => $fingerprintRef,
                 'device_id' => $device?->id,
+                'sesi_kas_id' => $sesiKas?->id,
                 'transaksi_id' => $transaksi->id,
                 'diproses_oleh' => $pengurus?->id,
                 'diproses_at' => now(),
             ]);
+
+            if ($sesiKas && $pengurus) {
+                $this->sesiKasService->catatMutasi(
+                    $sesiKas,
+                    MutasiKas::ARAH_KELUAR,
+                    'penarikan_tunai_mandiri',
+                    $request->nominal_diminta,
+                    $pengurus,
+                    'penarikan:'.$request->id,
+                    $request,
+                    "Penarikan mandiri {$request->santri->nama}",
+                );
+            }
 
             return $request->fresh();
         });

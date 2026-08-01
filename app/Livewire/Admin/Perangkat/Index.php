@@ -5,7 +5,7 @@ namespace App\Livewire\Admin\Perangkat;
 use App\Livewire\Concerns\WithPerPage;
 use App\Models\Device;
 use App\Models\UnitUsaha;
-use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -38,6 +38,9 @@ class Index extends Component
 
     public bool $aktif = true;
 
+    /** @var array<int, int|string> */
+    public array $petugas_ids = [];
+
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -46,7 +49,7 @@ class Index extends Component
     public function openCreate(): void
     {
         $this->editing = null;
-        $this->reset(['kode_device', 'nama', 'lokasi', 'unit_usaha_id']);
+        $this->reset(['kode_device', 'nama', 'lokasi', 'unit_usaha_id', 'petugas_ids']);
         $this->tipe = Device::TIPE_KIOSK_SALDO;
         $this->aktif = true;
         $this->resetValidation();
@@ -55,10 +58,11 @@ class Index extends Component
 
     public function openEdit(int $id): void
     {
-        $device = Device::findOrFail($id);
+        $device = Device::with('petugasTerdaftar')->findOrFail($id);
         $this->editing = $device;
         $this->fill($device->only(['kode_device', 'nama', 'lokasi', 'tipe', 'unit_usaha_id']));
         $this->aktif = $device->status === 'aktif';
+        $this->petugas_ids = $device->petugasTerdaftar->pluck('id')->all();
         $this->resetValidation();
         $this->showModal = true;
     }
@@ -77,6 +81,8 @@ class Index extends Component
             // other tipe leaves this null regardless of what's selected in
             // the form, since the field is hidden for them anyway.
             'unit_usaha_id' => [$this->tipe === Device::TIPE_KANTIN ? 'required' : 'nullable', 'exists:unit_usahas,id'],
+            'petugas_ids' => ['array'],
+            'petugas_ids.*' => ['integer', 'exists:users,id'],
         ], [
             'kode_device.regex' => 'Kode device hanya boleh berisi huruf, angka, tanda hubung (-), dan garis bawah (_) - kode ini menjadi bagian dari URL mesin.',
             'unit_usaha_id.required' => 'Pilih unit usaha untuk kiosk kantin ini.',
@@ -88,11 +94,28 @@ class Index extends Component
 
         $data['status'] = $this->aktif ? 'aktif' : 'nonaktif';
 
+        $sesiAktif = $this->editing?->sesiKasAktif()->first();
+        if ($sesiAktif && (! $this->aktif || ! in_array($sesiAktif->petugas_id, array_map('intval', $this->petugas_ids), true))) {
+            $this->addError('petugas_ids', 'Perangkat masih memiliki sesi aktif. Petugas aktif tidak boleh dilepas dan perangkat tidak boleh dinonaktifkan sebelum sesi ditutup.');
+            return;
+        }
+
         if ($this->editing) {
             $this->editing->update($data);
+            $device = $this->editing;
         } else {
-            Device::create($data);
+            $device = Device::create($data);
         }
+
+        $petugas = User::query()
+            ->whereHas('roles', fn ($q) => $q->where('name', 'petugas_kios'))
+            ->whereIn('id', $this->petugas_ids)
+            ->pluck('id');
+        $device->petugasTerdaftar()->sync($petugas->mapWithKeys(fn ($id) => [$id => [
+            'aktif' => true,
+            'ditugaskan_oleh' => auth()->id(),
+            'ditugaskan_at' => now(),
+        ]])->all());
 
         $this->showModal = false;
         session()->flash('status', 'Perangkat berhasil disimpan.');
@@ -116,30 +139,11 @@ class Index extends Component
     public function toggleActive(int $id): void
     {
         $device = Device::findOrFail($id);
+        if ($device->status === 'aktif' && $device->sesiKasAktif()->exists()) {
+            $this->addError('perangkat', 'Perangkat tidak dapat dinonaktifkan karena masih memiliki sesi kas aktif.');
+            return;
+        }
         $device->update(['status' => $device->status === 'aktif' ? 'nonaktif' : 'aktif']);
-    }
-
-    /**
-     * Self-claim: whoever clicks it becomes the current petugas jaga,
-     * silently replacing whoever was there before - this is a duty roster
-     * for "who to call about this machine", not an access-control gate
-     * (the kiosk itself needs no login at all), so no approval/handover
-     * workflow beyond "the next person who shows up clicks the button".
-     */
-    public function jagaDisini(int $id): void
-    {
-        Device::findOrFail($id)->update([
-            'petugas_jaga_id' => Auth::id(),
-            'petugas_jaga_sejak' => now(),
-        ]);
-    }
-
-    public function lepasJaga(int $id): void
-    {
-        Device::findOrFail($id)->update([
-            'petugas_jaga_id' => null,
-            'petugas_jaga_sejak' => null,
-        ]);
     }
 
     /**
@@ -168,7 +172,7 @@ class Index extends Component
     {
         $search = trim($this->search);
         $devices = Device::query()
-            ->with(['petugasJaga', 'unitUsaha'])
+            ->with(['petugasJaga', 'petugasTerdaftar', 'sesiKasAktif.petugas', 'unitUsaha'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('kode_device', 'like', "%{$search}%")
@@ -199,6 +203,10 @@ class Index extends Component
                 Device::TIPE_KANTIN => 'Kiosk Kantin',
             ],
             'unitUsahas' => UnitUsaha::orderBy('nama')->get(),
+            'petugasKios' => User::query()
+                ->whereHas('roles', fn ($q) => $q->where('name', 'petugas_kios'))
+                ->orderBy('name')
+                ->get(['id', 'name', 'email']),
         ]);
     }
 }

@@ -4,10 +4,12 @@ use App\Models\Device;
 use App\Models\JenisTagihan;
 use App\Models\Keluarga;
 use App\Models\Lembaga;
+use App\Models\RekeningTabungan;
 use App\Models\Santri;
 use App\Models\Tagihan;
 use App\Models\TopupWali;
 use App\Models\Transaksi;
+use App\Models\TransaksiTabungan;
 use App\Models\UnitUsaha;
 use App\Models\WaliSantri;
 use App\Models\WaliNotification;
@@ -20,6 +22,8 @@ use App\Services\TopupWaliService;
 use App\Services\TransferSaldoService;
 use App\Services\WalletService;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 function makeWaliWithAnak(): array
@@ -47,7 +51,30 @@ it('logs in a wali and returns a bearer token', function () {
         'login' => 'wali-api@test.com',
         'password' => 'password',
         'device_name' => 'iphone-15',
-    ])->assertOk()->assertJsonStructure(['token', 'user' => ['id', 'name', 'email', 'phone', 'must_change_password']]);
+    ])->assertOk()->assertJsonStructure(['token', 'quick_token', 'user' => ['id', 'name', 'email', 'phone', 'must_change_password']]);
+});
+
+it('rotates a trusted-device quick token into a new access session', function () {
+    makeUserWithRole('wali', ['email' => 'wali-quick@test.com', 'password' => 'password']);
+
+    $login = $this->postJson('/api/wali/login', [
+        'login' => 'wali-quick@test.com',
+        'password' => 'password',
+        'device_name' => 'android-wali',
+    ])->assertOk();
+
+    $quickToken = $login->json('quick_token');
+    $pemulihan = $this->postJson('/api/wali/quick-login', [
+        'quick_token' => $quickToken,
+        'device_name' => 'android-wali',
+    ])->assertOk()->assertJsonStructure(['token', 'quick_token', 'user']);
+
+    expect($pemulihan->json('quick_token'))->not->toBe($quickToken);
+
+    $this->postJson('/api/wali/quick-login', [
+        'quick_token' => $quickToken,
+        'device_name' => 'android-wali',
+    ])->assertUnauthorized();
 });
 
 it('rebuilds wali-santri links during login so the mobile app can load the child list', function () {
@@ -146,6 +173,49 @@ it('returns the saldo for a linked santri', function () {
         ->assertJson(['santri_id' => $santri->id, 'saldo' => 75000]);
 });
 
+it('returns tabungan summary and moves saldo to tabungan idempotently', function () {
+    [$wali, $santri] = makeWaliWithAnak();
+    app(WalletService::class)->credit($santri, 300000, Transaksi::JENIS_TOPUP_TUNAI);
+    Sanctum::actingAs($wali, ['wali']);
+
+    $this->getJson("/api/wali/anak/{$santri->id}/tabungan")
+        ->assertOk()
+        ->assertJsonPath('saldo_santri', 300000)
+        ->assertJsonPath('saldo_tabungan', 0)
+        ->assertJsonPath('saldo_bisa_dipindahkan', 200000);
+
+    $payload = [
+        'nominal' => 100000,
+        'pin' => '135790',
+        'request_id' => 'uji-tabungan-wali-1',
+    ];
+
+    $this->postJson("/api/wali/anak/{$santri->id}/tabungan/dari-saldo", $payload)
+        ->assertCreated()
+        ->assertJsonPath('saldo_santri', 200000)
+        ->assertJsonPath('saldo_tabungan', 100000);
+
+    $this->postJson("/api/wali/anak/{$santri->id}/tabungan/dari-saldo", $payload)
+        ->assertCreated()
+        ->assertJsonPath('saldo_santri', 200000)
+        ->assertJsonPath('saldo_tabungan', 100000);
+
+    expect($santri->saldo->fresh()->saldo)->toBe(200000)
+        ->and($santri->rekeningTabungan->saldo)->toBe(100000);
+});
+
+it('forbids a wali from accessing another santri tabungan', function () {
+    [$wali] = makeWaliWithAnak();
+    $santriLain = Santri::factory()->create();
+    Sanctum::actingAs($wali, ['wali']);
+
+    $this->getJson("/api/wali/anak/{$santriLain->id}/tabungan")->assertForbidden();
+    $this->postJson("/api/wali/anak/{$santriLain->id}/tabungan/dari-saldo", [
+        'nominal' => 10000,
+        'pin' => '135790',
+    ])->assertForbidden();
+});
+
 it('lists transaksi history for a linked santri', function () {
     [$wali, $santri] = makeWaliWithAnak();
     app(WalletService::class)->credit($santri, 50000, Transaksi::JENIS_TOPUP_TUNAI);
@@ -155,6 +225,35 @@ it('lists transaksi history for a linked santri', function () {
     $this->getJson("/api/wali/anak/{$santri->id}/transaksi")
         ->assertOk()
         ->assertJsonCount(1, 'data');
+});
+
+it('includes petugas tabungan deposits in the unified transaction history', function () {
+    [$wali, $santri] = makeWaliWithAnak();
+    $rekening = RekeningTabungan::create([
+        'santri_id' => $santri->id,
+        'saldo' => 25000,
+        'status' => RekeningTabungan::STATUS_AKTIF,
+        'dibuka_at' => now(),
+    ]);
+    TransaksiTabungan::create([
+        'rekening_tabungan_id' => $rekening->id,
+        'jenis' => TransaksiTabungan::JENIS_SETORAN_TUNAI,
+        'kanal' => TransaksiTabungan::KANAL_PETUGAS,
+        'arah' => TransaksiTabungan::ARAH_KREDIT,
+        'nominal' => 25000,
+        'saldo_sebelum' => 0,
+        'saldo_sesudah' => 25000,
+        'status' => Transaksi::STATUS_BERHASIL,
+        'idempotency_key' => 'uji-setoran-petugas',
+    ]);
+
+    Sanctum::actingAs($wali, ['wali']);
+
+    $this->getJson("/api/wali/anak/{$santri->id}/transaksi")
+        ->assertOk()
+        ->assertJsonPath('data.0.ledger', 'tabungan')
+        ->assertJsonPath('data.0.jenis', 'setoran_tunai')
+        ->assertJsonPath('data.0.metode', 'petugas');
 });
 
 it('returns an exact transaction detail for notification deep links', function () {
@@ -170,6 +269,16 @@ it('returns an exact transaction detail for notification deep links', function (
     $this->getJson("/api/wali/anak/{$santri->id}/transaksi/{$transaksi->id}")
         ->assertOk()
         ->assertJsonPath('data.id', $transaksi->id);
+});
+
+it('normalizes mysql foreign keys used by notification deep links', function () {
+    $transaksi = new Transaksi();
+    $transaksi->setRawAttributes(['santri_id' => '17']);
+    $tagihan = new Tagihan();
+    $tagihan->setRawAttributes(['santri_id' => '17']);
+
+    expect($transaksi->santri_id)->toBe(17)
+        ->and($tagihan->santri_id)->toBe(17);
 });
 
 it('returns an exact tagihan detail for notification deep links', function () {
@@ -584,6 +693,33 @@ it('rejects a profile update using an email already taken by another user', func
         ->assertJsonValidationErrors('email');
 });
 
+it('uploads an optimized wali profile photo and returns its public url', function () {
+    Storage::fake('public');
+    [$wali] = makeWaliWithAnak();
+
+    Sanctum::actingAs($wali, ['wali']);
+
+    $response = $this->post('/api/wali/profile/photo', [
+        'photo' => UploadedFile::fake()->image('avatar.jpg', 512, 512)->size(250),
+    ]);
+
+    $response->assertOk()->assertJsonStructure(['photo_url']);
+    $path = $wali->fresh()->avatar_path;
+    expect($path)->not->toBeNull();
+    Storage::disk('public')->assertExists($path);
+});
+
+it('rejects an oversized wali profile photo', function () {
+    Storage::fake('public');
+    [$wali] = makeWaliWithAnak();
+
+    Sanctum::actingAs($wali, ['wali']);
+
+    $this->post('/api/wali/profile/photo', [
+        'photo' => UploadedFile::fake()->image('avatar.jpg')->size(1200),
+    ])->assertStatus(422)->assertJsonValidationErrors('photo');
+});
+
 it('logs out and revokes the current token', function () {
     makeUserWithRole('wali', ['email' => 'wali-api@test.com', 'password' => 'password']);
 
@@ -715,6 +851,13 @@ it('marks one or all wali notifications as read without exposing another account
 
     expect($second->fresh()->read_at)->not->toBeNull()
         ->and($foreign->fresh()->read_at)->toBeNull();
+});
+
+it('casts notification owner ids consistently for strict mysql ownership checks', function () {
+    $notification = new WaliNotification();
+    $notification->setRawAttributes(['user_id' => '42']);
+
+    expect($notification->user_id)->toBe(42);
 });
 
 it('stores a notification inbox item even when the wali has no FCM token', function () {

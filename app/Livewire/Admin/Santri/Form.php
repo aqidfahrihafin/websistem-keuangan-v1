@@ -6,9 +6,11 @@ use App\Models\KategoriDiskon;
 use App\Models\Kamar;
 use App\Models\Keluarga;
 use App\Models\Lembaga;
+use App\Models\Rayon;
 use App\Models\Santri;
 use App\Services\SantriDeaktivasiService;
 use App\Services\PenempatanKamarService;
+use App\Services\PenempatanRayonService;
 use App\Services\WaliAccountService;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
@@ -39,6 +41,7 @@ class Form extends Component
     public ?string $tanggal_masuk = null;
 
     public ?int $lembaga_id = null;
+    public ?int $rayon_id = null;
 
     public ?int $kamar_id = null;
 
@@ -78,7 +81,7 @@ class Form extends Component
             $this->santri = $santri;
             $this->fill($santri->only([
                 'nis', 'nik', 'nama', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
-                'alamat', 'status', 'tanggal_masuk', 'lembaga_id', 'kamar_id', 'kategori_diskon_id',
+                'alamat', 'status', 'tanggal_masuk', 'lembaga_id', 'rayon_id', 'kamar_id', 'kategori_diskon_id',
             ]));
 
             if ($santri->keluarga) {
@@ -91,11 +94,11 @@ class Form extends Component
         }
     }
 
-    public function updatedLembagaId(): void
+    public function updatedRayonId(): void
     {
         if ($this->kamar_id && ! Kamar::query()
             ->whereKey($this->kamar_id)
-            ->where('lembaga_id', $this->lembaga_id)
+            ->where('rayon_id', $this->rayon_id)
             ->exists()) {
             $this->kamar_id = null;
         }
@@ -149,6 +152,7 @@ class Form extends Component
         WaliAccountService $waliAccounts,
         SantriDeaktivasiService $deaktivasi,
         PenempatanKamarService $penempatanKamar,
+        PenempatanRayonService $penempatanRayon,
     ): void
     {
         $data = $this->validate([
@@ -162,10 +166,11 @@ class Form extends Component
             'status' => ['required', 'in:baru,aktif,nonaktif,lulus,keluar'],
             'tanggal_masuk' => ['nullable', 'date'],
             'lembaga_id' => ['nullable', 'exists:lembagas,id'],
+            'rayon_id' => ['nullable', 'exists:rayons,id'],
             'kamar_id' => [
                 'nullable',
                 Rule::exists('kamars', 'id')->where(fn ($query) => $query
-                    ->where('lembaga_id', $this->lembaga_id)
+                    ->where('rayon_id', $this->rayon_id)
                     ->where('is_active', true)
                     ->whereNull('deleted_at')),
             ],
@@ -236,7 +241,8 @@ class Form extends Component
                 $payload['kategori_diskon_auto'] = false;
             }
             $kamarId = $payload['kamar_id'] ?? null;
-            unset($payload['kamar_id']);
+            $rayonId = $payload['rayon_id'] ?? null;
+            unset($payload['kamar_id'], $payload['rayon_id']);
             $this->santri->update($payload);
             $savedSantri = $this->santri;
         } else {
@@ -244,10 +250,12 @@ class Form extends Component
                 $payload['kategori_diskon_auto'] = false;
             }
             $kamarId = $payload['kamar_id'] ?? null;
-            unset($payload['kamar_id']);
+            $rayonId = $payload['rayon_id'] ?? null;
+            unset($payload['kamar_id'], $payload['rayon_id']);
             $savedSantri = Santri::create($payload);
         }
 
+        $penempatanRayon->tempatkan($savedSantri->fresh(), $rayonId, Auth::user());
         $penempatanKamar->tempatkan($savedSantri->fresh(), $kamarId, Auth::user());
 
         $pesanWali = '';
@@ -276,10 +284,11 @@ class Form extends Component
         return view('livewire.admin.santri.form', [
             'title' => $this->santri ? 'Ubah Santri' : 'Tambah Santri',
             'lembagas' => Lembaga::orderBy('nama')->get(),
+            'rayons' => Rayon::where('is_active', true)->orderBy('nama')->get(),
             'kamars' => Kamar::query()
                 ->where('is_active', true)
-                ->when($this->lembaga_id, fn ($query) => $query->where('lembaga_id', $this->lembaga_id))
-                ->when(! $this->lembaga_id, fn ($query) => $query->whereRaw('1 = 0'))
+                ->when($this->rayon_id, fn ($query) => $query->where('rayon_id', $this->rayon_id))
+                ->when(! $this->rayon_id, fn ($query) => $query->whereRaw('1 = 0'))
                 ->withCount('santris')
                 ->orderBy('nama')
                 ->get(),

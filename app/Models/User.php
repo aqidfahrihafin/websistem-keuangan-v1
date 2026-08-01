@@ -17,7 +17,7 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'nis', 'no_kk', 'phone', 'password', 'must_change_password', 'pin'])]
+#[Fillable(['name', 'email', 'nis', 'no_kk', 'phone', 'avatar_path', 'password', 'must_change_password', 'pin'])]
 #[Hidden(['password', 'remember_token', 'pin'])]
 class User extends Authenticatable
 {
@@ -90,6 +90,25 @@ class User extends Authenticatable
     public function deviceTokens(): HasMany
     {
         return $this->hasMany(WaliDeviceToken::class);
+    }
+
+    public function perangkatKios(): BelongsToMany
+    {
+        return $this->belongsToMany(Device::class, 'device_petugas')
+            ->withPivot(['aktif', 'ditugaskan_oleh', 'ditugaskan_at'])
+            ->withTimestamps();
+    }
+
+    public function lembagasDikelola(): BelongsToMany
+    {
+        return $this->belongsToMany(Lembaga::class, 'unit_user')
+            ->wherePivot('aktif', true)->withPivot(['akses', 'aktif'])->withTimestamps();
+    }
+
+    public function rayonsDikelola(): BelongsToMany
+    {
+        return $this->belongsToMany(Rayon::class, 'unit_user')
+            ->wherePivot('aktif', true)->withPivot(['akses', 'aktif'])->withTimestamps();
     }
 
     public function waliNotifications(): HasMany

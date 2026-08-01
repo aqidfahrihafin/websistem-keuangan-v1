@@ -12,10 +12,12 @@ class DeviceFactory extends Factory
 {
     public function definition(): array
     {
+        $faker = \Faker\Factory::create();
+
         return [
-            'kode_device' => fake()->unique()->bothify('KIOSK-##??'),
-            'nama' => fake()->words(2, true),
-            'lokasi' => fake()->streetName(),
+            'kode_device' => $faker->unique()->bothify('KIOSK-##??'),
+            'nama' => $faker->words(2, true),
+            'lokasi' => $faker->streetName(),
             'tipe' => Device::TIPE_KIOSK_SALDO,
             'status' => 'aktif',
         ];

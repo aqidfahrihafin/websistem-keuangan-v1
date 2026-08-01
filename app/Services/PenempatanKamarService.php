@@ -38,8 +38,8 @@ class PenempatanKamarService
                     throw ValidationException::withMessages(['kamar_id' => 'Kamar yang dipilih sedang nonaktif.']);
                 }
 
-                if ((int) $kamar->lembaga_id !== (int) $santri->lembaga_id) {
-                    throw ValidationException::withMessages(['kamar_id' => 'Kamar harus berada pada lembaga santri yang sama.']);
+                if ((int) $kamar->rayon_id !== (int) $santri->rayon_id) {
+                    throw ValidationException::withMessages(['kamar_id' => 'Kamar harus berada pada rayon santri yang sama.']);
                 }
 
                 if ($kamar->jenis_kelamin && $santri->jenis_kelamin && $kamar->jenis_kelamin !== $santri->jenis_kelamin) {

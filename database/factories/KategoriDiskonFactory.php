@@ -12,9 +12,11 @@ class KategoriDiskonFactory extends Factory
 {
     public function definition(): array
     {
+        $faker = \Faker\Factory::create();
+
         return [
-            'nama' => fake()->unique()->words(2, true),
-            'persentase' => fake()->numberBetween(5, 25),
+            'nama' => $faker->unique()->words(2, true),
+            'persentase' => $faker->numberBetween(5, 25),
             'is_active' => true,
         ];
     }

@@ -1,4 +1,4 @@
-<div>
+<div class="content-stack">
     <div class="toolbar mb-4">
         <div class="grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
             <x-search-input wire:model.live.debounce.300ms="search" placeholder="Cari unit usaha atau petugas..." />

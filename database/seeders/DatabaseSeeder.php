@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             KategoriDiskonSeeder::class,
             KeluargaSantriSeeder::class,
+            RayonKamarSeeder::class,
             KartuSantriSeeder::class,
             JenisTagihanSeeder::class,
             PeriodeSeeder::class,
