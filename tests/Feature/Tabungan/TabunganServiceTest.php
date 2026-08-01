@@ -204,6 +204,49 @@ it('menghitung selisih saat sesi kas ditutup dan diverifikasi', function () {
         ->and($selesai->diverifikasi_oleh)->toBe($bendahara->id);
 });
 
+it('menampilkan sesi perangkat sebelumnya dan dapat menyalin nominal setelah diverifikasi', function () {
+    $petugasLama = makeUserWithRole('petugas_kios');
+    $petugasBaru = makeUserWithRole('petugas_kios');
+    $admin = makeUserWithRole('admin');
+    $sesi = bukaSesiKasUji($petugasLama, 100000);
+    $sesi->device->petugasTerdaftar()->attach($petugasBaru->id, [
+        'aktif' => true,
+        'ditugaskan_at' => now(),
+    ]);
+
+    $service = app(SesiKasService::class);
+    $service->tutup($sesi, $petugasLama, 95000);
+    $service->verifikasi($sesi->fresh(), $admin);
+
+    Livewire::actingAs($petugasBaru)->test(DashboardPetugasKios::class)
+        ->set('deviceId', $sesi->device_id)
+        ->assertSee('Sesi sebelumnya')
+        ->assertSee($petugasLama->name)
+        ->assertSee('Sudah diverifikasi · ada selisih')
+        ->assertSee('Gunakan nominal fisik')
+        ->call('gunakanNominalSesiSebelumnya')
+        ->assertSet('saldoAwal', 95000);
+});
+
+it('menampilkan sesi sebelumnya yang belum diverifikasi hanya sebagai informasi', function () {
+    $petugasLama = makeUserWithRole('petugas_kios');
+    $petugasBaru = makeUserWithRole('petugas_kios');
+    $sesi = bukaSesiKasUji($petugasLama, 100000);
+    $sesi->device->petugasTerdaftar()->attach($petugasBaru->id, [
+        'aktif' => true,
+        'ditugaskan_at' => now(),
+    ]);
+
+    app(SesiKasService::class)->tutup($sesi, $petugasLama, 100000);
+
+    Livewire::actingAs($petugasBaru)->test(DashboardPetugasKios::class)
+        ->set('deviceId', $sesi->device_id)
+        ->assertSee('Sesi sebelumnya')
+        ->assertSee('Menunggu verifikasi admin')
+        ->assertSee('hanya sebagai informasi serah-terima')
+        ->assertDontSee('Gunakan nominal fisik');
+});
+
 it('hanya mengizinkan wali tertaut melihat dan memindahkan saldo ke tabungan', function () {
     $wali = makeUserWithRole('wali', ['pin' => Hash::make('123456')]);
     $santri = Santri::factory()->create();

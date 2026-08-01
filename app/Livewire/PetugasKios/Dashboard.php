@@ -106,6 +106,44 @@ class Dashboard extends Component
         }
     }
 
+    public function gunakanNominalSesiSebelumnya(): void
+    {
+        if (! $this->deviceId) {
+            $this->addError('saldoAwal', 'Pilih perangkat kios terlebih dahulu.');
+
+            return;
+        }
+
+        $deviceTerdaftar = Auth::user()->perangkatKios()
+            ->wherePivot('aktif', true)
+            ->where('devices.status', 'aktif')
+            ->where('devices.id', $this->deviceId)
+            ->exists();
+
+        if (! $deviceTerdaftar) {
+            $this->addError('saldoAwal', 'Perangkat kios tidak tersedia untuk akun Anda.');
+
+            return;
+        }
+
+        $sesiSebelumnya = SesiKas::query()
+            ->where('device_id', $this->deviceId)
+            ->whereIn('status', [SesiKas::STATUS_SESUAI, SesiKas::STATUS_SELISIH])
+            ->whereNotNull('diverifikasi_at')
+            ->whereNotNull('uang_fisik_akhir')
+            ->latest('ditutup_at')
+            ->latest('id')
+            ->first();
+
+        if (! $sesiSebelumnya) {
+            $this->addError('saldoAwal', 'Belum ada nominal sesi sebelumnya yang sudah diverifikasi.');
+
+            return;
+        }
+
+        $this->saldoAwal = (int) $sesiSebelumnya->uang_fisik_akhir;
+    }
+
     public function prosesTunai(
     WalletService $wallet,
     TabunganService $tabungan,
@@ -220,6 +258,20 @@ class Dashboard extends Component
             ->orderBy('nama')
             ->get();
 
+        $sesiSebelumnya = $this->deviceId && $perangkat->contains('id', $this->deviceId)
+            ? SesiKas::query()
+                ->where('device_id', $this->deviceId)
+                ->whereIn('status', [
+                    SesiKas::STATUS_MENUNGGU_VERIFIKASI,
+                    SesiKas::STATUS_SESUAI,
+                    SesiKas::STATUS_SELISIH,
+                ])
+                ->with(['petugas', 'diverifikasiOleh'])
+                ->latest('ditutup_at')
+                ->latest('id')
+                ->first()
+            : null;
+
         return view('livewire.petugas-kios.dashboard', [
             'title' => match ($this->halaman) {
                 'transaksi' => 'Transaksi Tunai',
@@ -262,6 +314,7 @@ class Dashboard extends Component
             'sesiPerangkatDipilih' => $this->deviceId
                 ? $perangkat->firstWhere('id', $this->deviceId)?->sesiKasAktif
                 : null,
+            'sesiSebelumnya' => $sesiSebelumnya,
             'tagihans' => $this->santriId
                 ? Tagihan::query()->where('santri_id', $this->santriId)
                     ->whereIn('status', [Tagihan::STATUS_BELUM_LUNAS, Tagihan::STATUS_SEBAGIAN])

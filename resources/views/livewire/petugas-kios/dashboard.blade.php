@@ -64,6 +64,65 @@
                         </x-warning-banner>
                     </div>
                 @endif
+                @if ($sesiSebelumnya)
+                    @php
+                        $sesiSudahDiverifikasi = in_array($sesiSebelumnya->status, [
+                            \App\Models\SesiKas::STATUS_SESUAI,
+                            \App\Models\SesiKas::STATUS_SELISIH,
+                        ], true) && $sesiSebelumnya->diverifikasi_at;
+                        $selisihSebelumnya = (int) $sesiSebelumnya->selisih;
+                    @endphp
+                    <section class="overflow-hidden rounded-xl border border-slate-200 bg-white sm:col-span-2">
+                        <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 p-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h3 class="font-semibold text-slate-900">Sesi sebelumnya</h3>
+                                    @if ($sesiSudahDiverifikasi)
+                                        <span class="badge {{ $sesiSebelumnya->status === \App\Models\SesiKas::STATUS_SESUAI ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' }}">
+                                            {{ $sesiSebelumnya->status === \App\Models\SesiKas::STATUS_SESUAI ? 'Sudah diverifikasi · sesuai' : 'Sudah diverifikasi · ada selisih' }}
+                                        </span>
+                                    @else
+                                        <span class="badge bg-amber-100 text-amber-800">Menunggu verifikasi admin</span>
+                                    @endif
+                                </div>
+                                <p class="mt-1 text-xs text-slate-500">
+                                    {{ $sesiSebelumnya->petugas?->name ?? 'Petugas tidak tersedia' }}
+                                    · ditutup {{ $sesiSebelumnya->ditutup_at?->format('d/m/Y H:i') ?? '-' }}
+                                </p>
+                            </div>
+                            @if ($sesiSudahDiverifikasi)
+                                <button type="button" wire:click="gunakanNominalSesiSebelumnya" class="btn-secondary shrink-0">
+                                    Gunakan nominal fisik
+                                </button>
+                            @endif
+                        </div>
+                        <div class="grid divide-y divide-slate-100 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                            <div class="p-4">
+                                <p class="text-xs text-slate-500">Kas sistem</p>
+                                <p class="mt-1 font-semibold text-slate-900">Rp {{ number_format($sesiSebelumnya->saldo_seharusnya, 0, ',', '.') }}</p>
+                            </div>
+                            <div class="p-4">
+                                <p class="text-xs text-slate-500">Uang fisik</p>
+                                <p class="mt-1 font-semibold text-slate-900">Rp {{ number_format($sesiSebelumnya->uang_fisik_akhir, 0, ',', '.') }}</p>
+                            </div>
+                            <div class="p-4">
+                                <p class="text-xs text-slate-500">Selisih</p>
+                                <p class="mt-1 font-semibold {{ $selisihSebelumnya === 0 ? 'text-emerald-700' : 'text-rose-700' }}">
+                                    {{ $selisihSebelumnya > 0 ? '+' : ($selisihSebelumnya < 0 ? '-' : '') }}Rp {{ number_format(abs($selisihSebelumnya), 0, ',', '.') }}
+                                </p>
+                            </div>
+                        </div>
+                        @if (! $sesiSudahDiverifikasi)
+                            <p class="border-t border-amber-100 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+                                Nominal ini hanya sebagai informasi serah-terima dan belum dapat digunakan sebagai saldo awal sebelum diverifikasi admin.
+                            </p>
+                        @elseif ($selisihSebelumnya !== 0)
+                            <p class="border-t border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-relaxed text-rose-700">
+                                Sesi sebelumnya memiliki selisih. Hitung kembali uang yang benar-benar diterima sebelum membuka sesi baru.
+                            </p>
+                        @endif
+                    </section>
+                @endif
                 <x-form-field label="Lokasi kios" name="lokasi">
                     <input value="{{ $lokasi }}" class="field-input bg-slate-100 text-slate-600" readonly placeholder="Pilih perangkat terlebih dahulu" />
                     <p class="mt-1.5 text-xs text-slate-500">Lokasi mengikuti data perangkat kios dan tidak dapat diubah oleh petugas.</p>
