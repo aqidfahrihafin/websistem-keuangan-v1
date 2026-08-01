@@ -63,7 +63,7 @@
                             Anda tidak dapat memproses transaksi pada perangkat ini sebelum sesi tersebut ditutup.
                         </x-warning-banner>
                     </div>
-                @else
+                @elseif ($deviceId)
                 @if ($sesiSebelumnya)
                     @php
                         $sesiSudahDiverifikasi = in_array($sesiSebelumnya->status, [

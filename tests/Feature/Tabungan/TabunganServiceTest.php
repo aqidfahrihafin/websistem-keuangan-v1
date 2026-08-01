@@ -447,6 +447,25 @@ it('mempertahankan halaman operasional kios sesuai rute yang dibuka', function (
         ->assertDontSee('Menu cepat');
 });
 
+it('menyembunyikan form saldo awal sampai perangkat kios dipilih', function () {
+    $petugas = makeUserWithRole('petugas_kios');
+    $device = Device::factory()->create(['status' => 'aktif']);
+    $device->petugasTerdaftar()->attach($petugas->id, [
+        'aktif' => true,
+        'ditugaskan_at' => now(),
+    ]);
+
+    Livewire::actingAs($petugas)->test(DashboardPetugasKios::class)
+        ->assertSee('Perangkat kios')
+        ->assertDontSee('Saldo awal')
+        ->assertDontSee('Kas awal yang akan dicatat')
+        ->assertDontSee('Periksa &amp; Buka Sesi', false)
+        ->set('deviceId', $device->id)
+        ->assertSee('Saldo awal')
+        ->assertSee('Kas awal yang akan dicatat')
+        ->assertSee('Periksa &amp; Buka Sesi', false);
+});
+
 it('mencatat opsi cepat setor saldo dan tabungan ke sesi perangkat yang sama', function () {
     $petugas = makeUserWithRole('petugas_kios');
     $santri = Santri::factory()->create(['status' => Santri::STATUS_AKTIF]);
