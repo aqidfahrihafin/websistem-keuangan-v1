@@ -44,7 +44,7 @@
                 <p class="mt-1 text-sm text-slate-500">Pilih perangkat dan hitung seluruh uang fisik di laci sebagai kas awal.</p>
             </div>
             <div class="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
-                <x-form-field label="Perangkat kios" name="deviceId">
+                <x-form-field label="Perangkat kios" name="deviceId" class="sm:col-span-2">
                     <select wire:model.live="deviceId" class="field-input">
                         <option value="">Pilih perangkat</option>
                         @foreach ($perangkat as $device)
